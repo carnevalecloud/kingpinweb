@@ -1,0 +1,7 @@
+diff --git a/src/client/cl_screen.c b/src/client/cl_screen.c
+--- a/src/client/cl_screen.c
++++ b/src/client/cl_screen.c
+@@ -1434,1 +1434,2 @@
+-	SCR_ExecuteLayoutString(cl.configstrings[CS_STATUSBAR]);
++	/* Walkthrough: do not execute the incompatible Quake II status bar. */
++	return;
