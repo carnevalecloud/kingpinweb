@@ -28,6 +28,10 @@ Open <https://kingpinweb.ddev.site>. **Map walkthrough** asks for your Kingpin f
 
 Build both flavours with `ddev engine build --flavour=upstream` and `ddev engine build --flavour=kingpin`, then rebuild the site. The walkthrough engine selector defaults to the reference build. The experimental flavour targets `/main` and separate engine storage; it still uses Quake II game logic and is not yet runtime-verified. Existing remembered imports work with either flavour.
 
+## Full map audit
+
+In the Playwright container, set `KP_ALL_MAPS=1` to run all 54 original maps, and `KP_ENGINE=kingpin` to select the experimental engine. Reports stay in `gamedata/reports/<flavour>/`. The default remains the five-map upstream smoke suite. Original assets are required locally.
+
 ## Commands
 
 | Command | Purpose |
