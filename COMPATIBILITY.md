@@ -3,6 +3,10 @@
 Tested 2026-11-26 with a Steam installation, headless Chromium with software WebGL, engine unmodified.
 Per-map and per-entity tables: [maps](docs/compatibility/maps.md), [entities](docs/compatibility/entities.md).
 
+## Experimental branch (not runtime verified)
+
+The experimental build includes a native `main` directory, isolated storage, and suppression of the incompatible Quake II status bar. An opt-in 54-map test matrix is defined; no additional maps have been verified by this change. The original five-map results below remain the only recorded runtime evidence.
+
 ## Works
 | Item | Evidence |
 | --- | --- |
