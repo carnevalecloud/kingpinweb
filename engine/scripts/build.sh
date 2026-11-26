@@ -38,8 +38,8 @@ build_once() {
   if [ "$flavour" = kingpin ]; then
     for patch in "$engine_dir"/patches/*.patch; do
       [ -f "$patch" ] || continue
-      git -C "$build/qwasm2" apply --check "$patch"
-      git -C "$build/qwasm2" apply "$patch"
+      git -C "$build/qwasm2" apply --unidiff-zero --check "$patch"
+      git -C "$build/qwasm2" apply --unidiff-zero "$patch"
     done
   fi
 
@@ -66,7 +66,9 @@ build_once() {
   ) >"$build/qwasm2.log" 2>&1 || { tail -80 "$build/qwasm2.log" >&2; return 1; }
 }
 
-artifacts=(index.html index.js index.wasm index.data game_baseq2.wasm ref_soft.wasm ref_gl1.wasm ref_gles3.wasm)
+game_module=game_baseq2.wasm
+[ "$flavour" != kingpin ] || game_module=game_main.wasm
+artifacts=(index.html index.js index.wasm index.data "$game_module" ref_soft.wasm ref_gl1.wasm ref_gles3.wasm)
 
 checksums() {
   (cd "$build/qwasm2/release" && sha256sum "${artifacts[@]}")
