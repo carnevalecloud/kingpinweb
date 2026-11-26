@@ -2,6 +2,8 @@
 
 Reviewed 2026-11-26. Exact pins: `engine/upstream.lock`, `.ddev/docker-compose.*.yaml`, `package-lock.json`.
 
+This project's own code is GPL-2.0-or-later ([LICENSE](LICENSE)).
+
 ## Compiled into the distributed engine
 | Component | Revision | Licence | Notes |
 | --- | --- | --- | --- |
@@ -10,12 +12,12 @@ Reviewed 2026-11-26. Exact pins: `engine/upstream.lock`, `.ddev/docker-compose.*
 | SDL 2.32.10 | Emscripten port | zlib | Downloaded and hash-checked by Emscripten. |
 | Emscripten 5.0.6 runtime | pinned image | MIT / NCSA | |
 
-The build copies the Qwasm2 and GL4ES licence texts, their source archives and the build script into
-`dist/engine/upstream/`. Before public distribution, check that this satisfies GPL source obligations for every
-linked component, including the SDL and Emscripten runtime notices, which are **not yet copied**.
+The build copies the licence texts for this project, Qwasm2, GL4ES, SDL2, Emscripten and musl, plus the Qwasm2 and
+GL4ES source archives (GL4ES without its `traces/` and `refs/` test data) and the build script, into `dist/engine/upstream/`. SDL2 and Emscripten sources are not
+copied; they are public at the versions above. This is a good-faith reading of the licences, not legal review.
 
 ## Development tools (not distributed, except Vite's small runtime helpers)
-Playwright 1.64.0 (Apache-2.0), TypeScript 7.0.2 (Apache-2.0), Vite 8.3.8 (MIT), Vitest 5.0.5 (MIT).
+Wrangler 4.168.0 (MIT or Apache-2.0), Playwright 1.64.0 (Apache-2.0), TypeScript 7.0.2 (Apache-2.0), Vite 8.3.8 (MIT), Vitest 5.0.5 (MIT).
 
 ## Consulted, no code copied
 | Source | Used for |

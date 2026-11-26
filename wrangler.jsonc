@@ -1,0 +1,7 @@
+{
+  // Static assets only: there is no Worker code or backend.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kingpinweb",
+  "compatibility_date": "2026-11-23",
+  "assets": { "directory": "./dist" }
+}

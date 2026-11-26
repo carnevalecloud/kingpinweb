@@ -42,6 +42,21 @@ To inspect an installation outside the project, run with Node 24 on the host:
 
 ## Deploying
 
+### Cloudflare (Workers Builds)
+
+| Setting | Value |
+| --- | --- |
+| Build command | `npm run build:cloudflare` |
+| Deploy command | `npx wrangler deploy` |
+
+Plain `npm run build` does **not** compile the engine, so the build command matters. `wrangler.jsonc` publishes
+`dist/` as static assets. The build downloads Emscripten and takes several minutes.
+
+To deploy from your own machine instead: `ddev engine build && ddev npm run build`, then `ddev exec npx wrangler login`
+and `ddev exec npx wrangler deploy`.
+
+### Other hosts
+
 Copy `dist/` to any static host. No backend is needed. `dist/engine/upstream/` carries the GPL licence texts and
 corresponding source; keep them when distributing. Serve `.wasm` as `application/wasm`.
 
@@ -53,6 +68,12 @@ corresponding source; keep them when distributing. Serve `.wasm` as `application
 
 ## Licence
 
-No licence has been chosen yet for this repository's own code. Engine modifications must be GPL-2.0-or-later,
-so that is the natural choice; decide before publishing. Kingpin is the property of its rights holders; this
-project is not affiliated with or endorsed by them.
+Copyright (C) 2026 the KINGPIN//WEB authors.
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public
+License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any
+later version. It is distributed WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See [LICENSE](LICENSE).
+
+Third-party components keep their own licences ([THIRD_PARTY.md](THIRD_PARTY.md)). The licence covers no game
+content: Kingpin is the property of its rights holders, and this project is not affiliated with or endorsed by them.

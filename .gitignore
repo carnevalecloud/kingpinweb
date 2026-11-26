@@ -25,3 +25,5 @@ gamedata/
 *.so
 *.iso
 *.zip
+.wrangler/
+engine/.tools/

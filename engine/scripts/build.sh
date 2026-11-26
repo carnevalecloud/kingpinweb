@@ -81,9 +81,24 @@ done
 # GPL: ship licence texts and the corresponding source next to the binaries.
 cp "$upstream/qwasm2/LICENSE" "$out/licenses/qwasm2-LICENSE"
 cp "$upstream/gl4es/LICENSE" "$out/licenses/gl4es-LICENSE"
-for name in qwasm2 gl4es; do
-  git -C "$upstream/$name" archive --format=tar --prefix="$name/" HEAD | gzip -n >"$out/source/$name.tar.gz"
-done
+# Notices for the libraries the toolchain links in, and for this project.
+emscripten="$(dirname "$(command -v emcc)")"
+cp "$root/LICENSE" "$out/licenses/kingpinweb-LICENSE"
+cp "$emscripten/LICENSE" "$out/licenses/emscripten-LICENSE"
+cp "$emscripten/system/lib/libc/musl/COPYRIGHT" "$out/licenses/musl-COPYRIGHT"
+cp "$(em-config CACHE)"/ports/sdl2/SDL-*/LICENSE.txt "$out/licenses/SDL2-LICENSE.txt"
+source_archive() {
+  local name="$1"
+  shift
+  git -C "$upstream/$name" archive --format=tar --prefix="$name/" HEAD -- . "$@" | gzip -n >"$out/source/$name.tar.gz"
+}
+source_archive qwasm2
+# GL4ES's recorded test captures are not source, and would exceed the 25 MiB
+# per-file limit of static hosts such as Cloudflare.
+source_archive gl4es ':(exclude)traces' ':(exclude)refs'
+# Fail here rather than at deploy time.
+oversized="$(find "$out" -type f -size +25M)"
+[ -z "$oversized" ] || { echo "ERROR: files over 25 MiB: $oversized" >&2; exit 1; }
 cp "$engine_dir/scripts/build.sh" "$engine_dir/upstream.lock" "$out/source/"
 
 {
