@@ -26,6 +26,7 @@ Accept when: a person has walked sr1 end to end and recorded defects; player dim
 taken from evidence and have collision tests; masked, translucent and sky surfaces look right; no console spam.
 - First engine patches, as a second "kingpin" build flavour beside the upstream one (implemented on feature branch; build verification pending)
 - Browser engine selector and launch-time import path mapping implemented; synthetic and real-game verification pending
+- Player physics baseline and measurement protocol: [evidence matrix](docs/compatibility/player-physics.md); original values still unverified
 - Native Kingpin filesystem (`main/`, `Pak0.pak`) instead of renaming to `baseq2`
 - Investigate surface flags beyond Quake II, `lightflare` and fog keys
 - Disable the incompatible Quake II status bar during walkthrough (patch implemented, unverified); replace it with a Kingpin HUD later
