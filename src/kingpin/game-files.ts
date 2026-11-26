@@ -4,6 +4,20 @@ import { normalizePath } from "../vfs/vfs.ts";
 
 /** Where the upstream engine looks for game data. */
 export const ENGINE_GAME_DIR = "/baseq2";
+export type EngineFlavour = "upstream" | "kingpin";
+export function engineGameDir(flavour: EngineFlavour): string {
+  return flavour === "kingpin" ? "/main" : ENGINE_GAME_DIR;
+}
+
+/** Saved imports retain their original canonical paths; translate only at launch. */
+export function engineTarget(target: string, flavour: EngineFlavour): string {
+  if (!target.startsWith(`${ENGINE_GAME_DIR}/`)) throw new Error(`Invalid imported path: ${target}`);
+  const relative = target.slice(ENGINE_GAME_DIR.length + 1).toLowerCase();
+  if (!relative || relative.split("/").some((part) => !part || part === "." || part === "..")) {
+    throw new Error(`Invalid imported path: ${target}`);
+  }
+  return `${engineGameDir(flavour)}/${relative}`;
+}
 
 /** World geometry needs these; models and sounds are not used yet. */
 const WANTED = /^(?:[^/]+\.pak|textures\/.+|maps\/[^/]+\.bsp|pics\/.+|env\/.+)$/;
