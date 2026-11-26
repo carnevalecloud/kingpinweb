@@ -1,0 +1,4 @@
+# Pinned upstream sources. Format: name  commit  url  licence
+# Changing a pin requires re-reviewing licences (THIRD_PARTY.md) and re-running all tests.
+qwasm2  c9ab09343d587ee36392aaefe29755e9a149e3af  https://github.com/GMH-Code/Qwasm2.git  GPL-2.0-or-later
+gl4es   8b1a3da5d2331d0f88b70be25963182d46eed857  https://github.com/ptitSeb/gl4es.git    MIT

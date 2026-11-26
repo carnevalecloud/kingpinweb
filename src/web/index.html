@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KINGPIN//WEB</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>KINGPIN//WEB</h1>
+      <p>
+        An in-progress browser compatibility engine for <em>Kingpin: Life of Crime</em> (1999). It needs your own copy
+        of the game and ships none of its files. <strong>The game is not playable yet.</strong>
+      </p>
+      <ul>
+        <li>
+          <a href="./play.html">Map walkthrough</a> (experimental): walk your maps. No characters or gameplay yet.
+        </li>
+        <li>
+          <a href="./inspector.html">Asset inspector</a>: examine your game files. Everything stays in this browser.
+        </li>
+        <li>
+          <a href="./engine/upstream/index.html">Upstream engine</a>: the unmodified Qwasm2 (Quake II) build. Without
+          Quake II-compatible data it stops during startup.
+          <span id="engine-info">Checking engine build…</span>
+        </li>
+      </ul>
+      <p class="muted">
+        The engine is GPL software.
+        <a href="./engine/upstream/source/upstream.lock">Source revisions</a> and licence texts are published with it.
+      </p>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

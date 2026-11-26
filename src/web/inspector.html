@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Asset inspector — KINGPIN//WEB</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <p><a href="./index.html">← KINGPIN//WEB</a></p>
+      <h1>Asset inspector</h1>
+      <p>Files are read locally by your browser. Nothing is uploaded.</p>
+      <p><label>Files <input type="file" id="files" multiple /></label></p>
+      <p><label>Game folder <input type="file" id="folder" webkitdirectory /></label></p>
+      <p id="status" role="status"></p>
+      <section id="results" hidden>
+        <p>
+          <button type="button" id="save-report">Download report (.md)</button>
+          <button type="button" id="save-json">Download details (.json)</button>
+        </p>
+        <div id="list"></div>
+        <h2>Compatibility report</h2>
+        <pre id="report"></pre>
+      </section>
+    </main>
+    <script type="module" src="./inspector.ts"></script>
+  </body>
+</html>

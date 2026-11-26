@@ -1,0 +1,11 @@
+:root { color-scheme: dark; }
+body { margin: 0; background: #151515; color: #ddd; font: 16px/1.5 system-ui, sans-serif; }
+main { max-width: 56rem; margin: 0 auto; padding: 1.5rem 16px; }
+a { color: #e8c66a; }
+pre { overflow: auto; max-height: 32rem; padding: 12px; background: #0b0b0b; font-size: 13px; }
+summary { cursor: pointer; overflow-wrap: anywhere; }
+.muted, #engine-info { color: #999; }
+#engine-info { display: block; }
+canvas { display: block; margin: 0 auto; max-width: 100%; max-height: 90vh; object-fit: contain; background: #000; outline: none; }
+canvas[hidden] { display: none; }
+#console { max-width: 56rem; margin: 0 auto; padding: 8px 16px; }

@@ -1,0 +1,14 @@
+#!/bin/bash
+## Description: Fetch, build or clean the engine (runs in the pinned Emscripten container)
+## Usage: engine <fetch|build|clean> [--verify-reproducible]
+## Example: ddev engine build
+
+set -euo pipefail
+cd /var/www/html
+
+case "${1:-}" in
+  fetch) exec engine/scripts/fetch.sh ;;
+  build) shift; engine/scripts/fetch.sh && exec engine/scripts/build.sh "$@" ;;
+  clean) rm -rf engine/.build public/engine; echo "Removed engine/.build and public/engine" ;;
+  *) echo "Usage: ddev engine <fetch|build|clean> [--verify-reproducible]" >&2; exit 2 ;;
+esac

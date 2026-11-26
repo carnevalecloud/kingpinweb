@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Map walkthrough — KINGPIN//WEB</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <div id="setup">
+        <p><a href="./index.html">← KINGPIN//WEB</a></p>
+        <h1>Map walkthrough (experimental)</h1>
+        <p>
+          Loads your maps into the unmodified Quake II engine. Expect missing characters, props, sounds and
+          interactions, and Quake II movement. Files are read locally and nothing is uploaded.
+        </p>
+        <p><label>Kingpin folder <input type="file" id="folder" webkitdirectory /></label></p>
+        <p><label><input type="checkbox" id="remember" checked /> Remember these files in this browser</label></p>
+        <p><span id="saved"></span> <button type="button" id="forget" hidden>Forget saved files</button></p>
+        <p>
+          <label>Map <select id="map" disabled></select></label>
+          <button type="button" id="start" disabled>Start</button>
+        </p>
+        <p class="muted">Click the view to capture the mouse. W A S D move, Space jumps, C crouches.</p>
+      </div>
+      <p id="status" role="status"></p>
+    </main>
+    <canvas id="canvas" tabindex="-1" hidden></canvas>
+    <details id="console" hidden>
+      <summary>Engine log</summary>
+      <pre id="log"></pre>
+    </details>
+    <script type="module" src="./play.ts"></script>
+  </body>
+</html>

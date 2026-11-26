@@ -1,0 +1,24 @@
+# Pinned Emscripten toolchain used to compile the engine. Do not use a floating tag.
+# Upgrading: change the tag, the digest and the volume name together, then run
+# `ddev engine build --verify-reproducible` and `ddev e2e`.
+services:
+  emsdk:
+    container_name: ddev-${DDEV_SITENAME}-emsdk
+    image: emscripten/emsdk:5.0.6@sha256:e1b3e665245524ac6b62b180f9ccf9bd22308e6bb034f5fd9090df54fdbdfba6
+    command: ["sleep", "infinity"]
+    user: "${DDEV_UID}:${DDEV_GID}"
+    working_dir: /var/www/html
+    environment:
+      HOME: /tmp
+    labels:
+      com.ddev.site-name: ${DDEV_SITENAME}
+      com.ddev.approot: ${DDEV_APPROOT}
+    volumes:
+      - "../:/var/www/html"
+      # DDEV runs this service's custom commands from here.
+      - ".:/mnt/ddev_config:ro"
+      # Keeps downloaded Emscripten ports (SDL2) between restarts.
+      - "emcache-5-0-6:/emsdk/upstream/emscripten/cache"
+
+volumes:
+  emcache-5-0-6:

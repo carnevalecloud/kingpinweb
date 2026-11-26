@@ -1,0 +1,8 @@
+#!/bin/bash
+## Description: Inspect Kingpin game files (path must be inside the project, e.g. gamedata/)
+## Usage: inspect <file-or-directory> [--json out.json] [--report out.md]
+## Example: ddev inspect gamedata/main --report gamedata/report.md
+
+set -euo pipefail
+cd /var/www/html
+exec node src/cli/inspect.ts "$@"

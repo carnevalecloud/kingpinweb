@@ -1,0 +1,27 @@
+node_modules/
+dist/
+public/engine/
+engine/.upstream/
+engine/.build/
+test-results/
+playwright-report/
+*.log
+
+# User-supplied game data. Never commit proprietary files.
+gamedata/
+*.pak
+*.bsp
+*.mdx
+*.md2
+*.tga
+*.wal
+*.cin
+*.dm2
+*.sav
+*.ssv
+*.sv2
+*.exe
+*.dll
+*.so
+*.iso
+*.zip
