@@ -1,6 +1,6 @@
 // Starts the unmodified upstream engine with our own page around it, replacing
 // the upstream shell so player files can be placed in its filesystem first.
-import { AUTOEXEC, ENGINE_GAME_DIR, type PlannedFile } from "../kingpin/game-files.ts";
+import { AUTOEXEC, engineGameDir, engineTarget, type EngineFlavour, type PlannedFile } from "../kingpin/game-files.ts";
 
 interface EmscriptenFs {
   mkdirTree(path: string): void;
@@ -9,13 +9,14 @@ interface EmscriptenFs {
 
 export interface EngineOptions {
   canvas: HTMLCanvasElement;
+  flavour?: EngineFlavour;
   files: PlannedFile<{ data: Uint8Array }>[];
   args: string[];
   log: (line: string) => void;
 }
 
 /** Can be called once per page load. */
-export function startEngine({ canvas, files, args, log }: EngineOptions): void {
+export function startEngine({ canvas, files, args, log, flavour = "upstream" }: EngineOptions): void {
   const global = window as unknown as { Module?: Record<string, unknown>; FS: EmscriptenFs };
   if (global.Module) throw new Error("the engine is already running; reload the page to start again");
 
@@ -27,7 +28,7 @@ export function startEngine({ canvas, files, args, log }: EngineOptions): void {
   canvas.addEventListener("contextmenu", (event) => event.preventDefault());
   canvas.addEventListener("webglcontextlost", () => log("WebGL context lost; reload the page."));
 
-  const engineBase = new URL("./engine/upstream/", document.baseURI).href;
+  const engineBase = new URL(`./engine/${flavour}/`, document.baseURI).href;
 
   global.Module = {
     canvas,
@@ -38,13 +39,14 @@ export function startEngine({ canvas, files, args, log }: EngineOptions): void {
     printErr: log,
     preRun: [
       () => {
-        for (const { target, file } of files) {
+        for (const { target: imported, file } of files) {
+          const target = engineTarget(imported, flavour);
           global.FS.mkdirTree(target.slice(0, target.lastIndexOf("/")));
           // canOwn hands the buffer to the filesystem instead of copying it.
           global.FS.writeFile(target, file.data, { canOwn: true });
         }
-        global.FS.mkdirTree(ENGINE_GAME_DIR);
-        global.FS.writeFile(`${ENGINE_GAME_DIR}/autoexec.cfg`, AUTOEXEC);
+        global.FS.mkdirTree(engineGameDir(flavour));
+        global.FS.writeFile(`${engineGameDir(flavour)}/autoexec.cfg`, AUTOEXEC);
       },
     ],
     // Callbacks the Qwasm2 C code expects the page to provide.
@@ -60,7 +62,7 @@ export function startEngine({ canvas, files, args, log }: EngineOptions): void {
   };
 
   const script = document.createElement("script");
-  script.src = "./engine/upstream/index.js";
-  script.onerror = () => log("Engine not found. Run “ddev engine build”, then rebuild the site.");
+  script.src = engineBase + "index.js";
+  script.onerror = () => log(`Engine not found. Run ddev engine build --flavour=${flavour}, then rebuild the site.`);
   document.body.append(script);
 }
