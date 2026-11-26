@@ -24,6 +24,10 @@ Open <https://kingpinweb.ddev.site>. **Map walkthrough** asks for your Kingpin f
 `C:\Program Files (x86)\Steam\steamapps\common\Kingpin`. Files stay in the browser; they can be remembered
 (IndexedDB) and forgotten again from the same page. Click the view to capture the mouse; WASD, Space, C.
 
+## Experimental engine
+
+Build both flavours with `ddev engine build --flavour=upstream` and `ddev engine build --flavour=kingpin`, then rebuild the site. The walkthrough engine selector defaults to the reference build. The experimental flavour targets `/main` and separate engine storage; it still uses Quake II game logic and is not yet runtime-verified. Existing remembered imports work with either flavour.
+
 ## Commands
 
 | Command | Purpose |
