@@ -7,6 +7,7 @@ import { type StoredGame, forgetGame, loadGame, saveGame } from "./game-store.ts
 
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const folder = $<HTMLInputElement>("#folder");
+const engineSelect = $<HTMLSelectElement>("#engine");
 const mapSelect = $<HTMLSelectElement>("#map");
 const start = $<HTMLButtonElement>("#start");
 const status = $("#status");
@@ -138,7 +139,7 @@ start.addEventListener("click", async () => {
     $("#setup").hidden = true;
     const canvas = $<HTMLCanvasElement>("#canvas");
     canvas.hidden = $("#console").hidden = false;
-    startEngine({ canvas, files, log, args: ["+set", "vid_renderer", "gles3", "+map", mapSelect.value] });
+    startEngine({ canvas, files, log, flavour: engineSelect.value === "kingpin" ? "kingpin" : "upstream", args: ["+set", "vid_renderer", "gles3", "+map", mapSelect.value] });
     canvas.focus();
   } catch (error) {
     status.textContent = `Failed to start: ${message(error)}. Reload the page to try again.`;
