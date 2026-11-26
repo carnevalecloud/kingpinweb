@@ -24,7 +24,8 @@ The first major milestone is a browser-rendered, explorable original Skidrow map
 ### Sprint 4: Faithful Skidrow
 Accept when: a person has walked sr1 end to end and recorded defects; player dimensions, eye height and speeds are
 taken from evidence and have collision tests; masked, translucent and sky surfaces look right; no console spam.
-- First engine patches, as a second "kingpin" build flavour beside the upstream one
+- First engine patches, as a second "kingpin" build flavour beside the upstream one (implemented on feature branch; build verification pending)
+- Browser engine selector and launch-time import path mapping implemented; synthetic and real-game verification pending
 - Native Kingpin filesystem (`main/`, `Pak0.pak`) instead of renaming to `baseq2`
 - Investigate surface flags beyond Quake II, `lightflare` and fog keys
 - Replace the Quake II status bar
