@@ -367,3 +367,17 @@ export function syntheticGameFiles(): { name: string; data: Uint8Array }[] {
     { name: `textures/${FLOOR_TEXTURE}.tga`, data: buildTga(128, 128, [200, 40, 200]) },
   ];
 }
+
+/** Visible vertical MDX triangle, facing the synthetic room spawn from +X. */
+export function syntheticMdxPropFiles(): { name: string; data: Uint8Array }[] {
+  const model = buildMdx();
+  const view = new DataView(model.buffer);
+  const frame = view.getInt32(15 * 4, true);
+  for (let axis = 0; axis < 3; axis++) view.setFloat32(frame + axis * 4, 0.25, true);
+  view.setFloat32(frame + 16, -32, true);
+  model.set([0,0,0,0, 0,0,255,0, 0,255,0,0], frame + 40);
+  const files = syntheticGameFiles().map(file => file.name.endsWith(".bsp") ? {
+    ...file, data: buildRoomBsp({extraEntities: '{ "classname" "kpweb_static_model" "model" "models/kpweb/prop.mdx" "origin" "96 0 16" }'})
+  } : file);
+  return [...files, {name:"models/kpweb/prop.mdx",data:model}, {name:"models/kpweb/skin.tga",data:buildTga(64,64,[255,20,20])}];
+}
