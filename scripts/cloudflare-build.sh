@@ -36,7 +36,7 @@ mkdir -p "$tools"
   engine/scripts/build.sh --flavour=kingpin
 )
 
-npm run build
+npm run build:site
 
 for file in upstream/{index.js,index.wasm,ref_gles3.wasm,game_baseq2.wasm} \
   kingpin/{index.js,index.wasm,ref_gles3.wasm,game_main.wasm}; do

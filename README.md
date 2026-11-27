@@ -54,10 +54,11 @@ To inspect an installation outside the project, run with Node 24 on the host:
 
 | Setting | Value |
 | --- | --- |
-| Build command | `npm run build:cloudflare` |
+| Build command | `npm run build` or `npm run build:cloudflare` |
 | Deploy command | `npx wrangler deploy` |
 
-The build command compiles both engine flavours. Plain `npm run build` does **not** compile the engine, so the build command matters. `wrangler.jsonc` publishes
+Both commands compile both engine flavours there: Workers Builds sets `WORKERS_CI=1`, which makes `npm run build`
+run the full build. Elsewhere `npm run build` builds only the web pages. `wrangler.jsonc` publishes
 `dist/` as static assets. The build downloads Emscripten and takes several minutes.
 
 To deploy from your own machine instead: `ddev engine build && ddev npm run build`, then `ddev exec npx wrangler login`

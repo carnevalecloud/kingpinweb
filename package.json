@@ -8,7 +8,8 @@
   "engines": { "node": ">=24" },
   "scripts": {
     "dev": "vite",
-    "build": "npm run typecheck && vite build && node scripts/check-assets.ts dist",
+    "build": "if [ \"${WORKERS_CI:-}\" = 1 ]; then npm run build:cloudflare; else npm run build:site; fi",
+    "build:site": "npm run typecheck && vite build && node scripts/check-assets.ts dist",
     "build:cloudflare": "scripts/cloudflare-build.sh",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
