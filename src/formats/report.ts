@@ -52,6 +52,7 @@ function checkMapTextures(report: FileReport, vfs: VirtualFileSystem): void {
     (name) => !TEXTURE_EXTENSIONS.some((ext) => vfs.find(`${base}textures/${name}.${ext}`)),
   );
   report.details.missingTextures = missing;
+  report.details.entityModelAssets = (details.entityModels ?? []).map(ref => ({ ...ref, present: !!vfs.find(base + ref.model) }));
   if (missing.length) {
     report.diagnostics.push({
       severity: "warning",
@@ -93,6 +94,11 @@ export function toMarkdown(report: GameReport): string {
       lines.push(`Entities: ${d.entityCount}. Textures: ${d.textures?.length}. Missing textures: ${d.missingTextures?.length ?? 0}.`);
       lines.push("", "| Entity classname | Count | Upstream spawn function |", "| --- | ---: | --- |");
       for (const c of d.classnames) lines.push(`| ${cell(c.name)} | ${c.count} | ${c.upstream ? "yes (behaviour unverified)" : "**no**"} |`);
+      const modelAssets = map.details.entityModelAssets as { classname: string; model: string; count: number; present: boolean }[] | undefined;
+      if (modelAssets?.length) {
+        lines.push("", "| Explicit model classname | Model | Count | Asset present |", "| --- | --- | ---: | --- |");
+        for (const ref of modelAssets) lines.push(`| ${cell(ref.classname)} | ${cell(ref.model)} | ${ref.count} | ${ref.present ? 'yes' : 'no'} |`);
+      }
       const flags = Object.entries(d.surfaceFlags ?? {});
       if (flags.length) lines.push("", `Surface flag bits (texinfo count): ${flags.map(([f, n]) => `${f}=${n}`).join(", ")}`);
     }
