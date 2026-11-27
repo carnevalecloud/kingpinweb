@@ -201,3 +201,16 @@ describe("format detection", () => {
     }
   });
 });
+
+describe("BSP model evidence", () => {
+  it("aggregates explicit model paths without guessing or accepting traversal", () => {
+    const bytes = buildRoomBsp({extraEntities:
+      '{ "classname" "props_phone" "model" "Models/Fixture/Phone.MDX" }\n' +
+      '{ "classname" "props_phone" "model" "models/fixture/phone.mdx" }\n' +
+      '{ "classname" "props_phone" }\n' +
+      '{ "classname" "props_phone" "model" "models/../bad.mdx" }\n' +
+      '{ "classname" "func_wall" "model" "*1" }'});
+    const details = inspectBsp(bytes, new Diagnostics())!;
+    expect(details.entityModels).toEqual([{classname:"props_phone",model:"models/fixture/phone.mdx",count:2}]);
+  });
+});
