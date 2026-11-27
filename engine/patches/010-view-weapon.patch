@@ -1,0 +1,196 @@
+--- a/src/client/cl_entities.c
++++ b/src/client/cl_entities.c
+@@ -586,6 +586,43 @@
+ 	}
+ }
+ 
++/* The Kingpin view weapon is several models sharing one set of frames, named
++ * ..._0.mdx upwards. Draws those after the first. */
++static void
++KP_AddViewWeaponParts(entity_t *gun, const char *first)
++{
++	char name[MAX_QPATH];
++	size_t digit;
++	int part, i;
++
++	if (strncmp(first, "models/kpweb/view/", 18) || strlen(first) >= sizeof(name))
++	{
++		return;
++	}
++
++	Q_strlcpy(name, first, sizeof(name));
++	digit = strlen(name) - strlen("0.mdx");
++
++	for (part = 1; part <= 9; part++)
++	{
++		name[digit] = '0' + part;
++
++		for (i = 1; i < MAX_MODELS; i++)
++		{
++			if (!strcmp(cl.configstrings[CS_MODELS + i], name))
++			{
++				if (cl.model_draw[i])
++				{
++					gun->model = cl.model_draw[i];
++					V_AddEntity(gun);
++				}
++
++				break;
++			}
++		}
++	}
++}
++
+ void
+ CL_AddViewWeapon(player_state_t *ps, player_state_t *ops)
+ {
+@@ -654,6 +691,7 @@
+ 	gun.backlerp = 1.0f - cl.lerpfrac;
+ 	VectorCopy(gun.origin, gun.oldorigin); /* don't lerp at all */
+ 	V_AddEntity(&gun);
++	KP_AddViewWeaponParts(&gun, cl.configstrings[CS_MODELS + ps->gunindex]);
+ }
+ 
+ /*
+--- a/src/game/g_items.c
++++ b/src/game/g_items.c
+@@ -34,6 +34,7 @@
+ void Drop_Weapon(edict_t *ent, gitem_t *inv);
+ 
+ void Weapon_Blaster(edict_t *ent);
++void Weapon_Pipe(edict_t *ent);
+ void Weapon_Shotgun(edict_t *ent);
+ void Weapon_SuperShotgun(edict_t *ent);
+ void Weapon_Machinegun(edict_t *ent);
+@@ -1811,7 +1812,7 @@
+ 		Weapon_Blaster,
+ 		"misc/w_pkup.wav",
+ 		NULL, 0,
+-		"models/weapons/v_blast/tris.md2",
++		"models/kpweb/view/pistol_0.mdx",
+ 		"w_blaster",
+ 		"Blaster",
+ 		0,
+@@ -2581,6 +2582,28 @@
+ 		"items/s_health.wav items/n_health.wav items/l_health.wav items/m_health.wav"
+ 	},
+ 
++	/* Kingpin's starting weapon; see Weapon_Pipe. */
++	{
++		"weapon_pipe",
++		NULL,
++		Use_Weapon,
++		NULL,
++		Weapon_Pipe,
++		NULL,
++		NULL, 0,
++		"models/kpweb/view/pipe_0.mdx",
++		"w_blaster",
++		"Pipe",
++		0,
++		0,
++		NULL,
++		IT_WEAPON | IT_STAY_COOP,
++		WEAP_BLASTER,
++		NULL,
++		0,
++		""
++	},
++
+ 	/* end of list marker */
+ 	{NULL}
+ };
+--- a/src/game/player/client.c
++++ b/src/game/player/client.c
+@@ -879,7 +879,10 @@
+ 
+ 	memset(&client->pers, 0, sizeof(client->pers));
+ 
+-	item = FindItem("Blaster");
++	/* The pistol is given at the start until weapon pickups work. */
++	client->pers.inventory[ITEM_INDEX(FindItem("Blaster"))] = 1;
++
++	item = FindItem("Pipe");
+ 	client->pers.selected_item = ITEM_INDEX(item);
+ 	client->pers.inventory[client->pers.selected_item] = 1;
+ 
+@@ -1648,6 +1651,11 @@
+ 	}
+ 
+ 	client->ps.gunindex = gi.modelindex(client->pers.weapon->view_model);
++	/* The other parts of the Kingpin view weapon; see cl_entities.c. */
++	gi.modelindex("models/kpweb/view/pipe_1.mdx");
++	gi.modelindex("models/kpweb/view/pistol_1.mdx");
++	gi.modelindex("models/kpweb/view/pistol_2.mdx");
++	gi.modelindex("models/kpweb/view/pistol_3.mdx");
+ 
+ 	/* clear entity state values */
+ 	ent->s.effects = 0;
+--- a/src/game/player/weapon.c
++++ b/src/game/player/weapon.c
+@@ -1164,18 +1164,62 @@
+ 	ent->client->ps.gunframe++;
+ }
+ 
++/* Strikes whatever is just in front of the player. Reach and strength are
++ * provisional. */
++static void
++Weapon_Pipe_Fire(edict_t *ent)
++{
++	vec3_t start, end, forward;
++	trace_t tr;
++
++	if (!ent)
++	{
++		return;
++	}
++
++	VectorCopy(ent->s.origin, start);
++	start[2] += ent->viewheight;
++	AngleVectors(ent->client->v_angle, forward, NULL, NULL);
++	VectorMA(start, 64, forward, end);
++	tr = gi.trace(start, NULL, NULL, end, ent, MASK_SHOT);
++
++	if (tr.fraction < 1.0f && tr.ent && tr.ent->takedamage)
++	{
++		T_Damage(tr.ent, ent, ent, forward, tr.endpos, tr.plane.normal,
++				15, 50, 0, MOD_HIT);
++	}
++
++	ent->client->ps.gunframe++;
++}
++
++void
++Weapon_Pipe(edict_t *ent)
++{
++	static int pause_frames[] = {0};
++	static int fire_frames[] = {7, 0};
++
++	if (!ent)
++	{
++		return;
++	}
++
++	Weapon_Generic(ent, 5, 9, 10, 15, pause_frames,
++			fire_frames, Weapon_Pipe_Fire);
++}
++
+ void
+ Weapon_Blaster(edict_t *ent)
+ {
+-	static int pause_frames[] = {19, 32, 0};
+-	static int fire_frames[] = {5, 0};
++	/* Frames of the Kingpin pistol as src/kingpin/view-weapon.ts lays them out. */
++	static int pause_frames[] = {0};
++	static int fire_frames[] = {6, 0};
+ 
+ 	if (!ent)
+ 	{
+ 		return;
+ 	}
+ 
+-	Weapon_Generic(ent, 4, 8, 52, 55, pause_frames,
++	Weapon_Generic(ent, 5, 9, 10, 15, pause_frames,
+ 			fire_frames, Weapon_Blaster_Fire);
+ }
+ 

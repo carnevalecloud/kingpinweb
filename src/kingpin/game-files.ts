@@ -79,6 +79,9 @@ export const AUTOEXEC = [
   'bind c "+movedown"',
   'bind SHIFT "+speed"',
   'bind p "viewpos"',
+  // The experimental engine's weapons; the reference engine has no "Pipe".
+  'bind 1 "use Pipe"',
+  'bind 2 "use Blaster"',
   "set freelook 1",
   "set cl_run 1",
   // There is no server to fetch missing files from.

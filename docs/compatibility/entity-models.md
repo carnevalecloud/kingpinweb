@@ -53,6 +53,18 @@ fight. The engine code is `engine/kingpin/kp_cast.c`, written against the Quake 
   measurements. Gang behaviour is a simplification: reputation, warnings and hiring are absent.
 - Dying restarts the map. The page, not the engine, shows health. There are no sounds, and saving is untested.
 
+## Held weapons (patch 010)
+
+| Key | Weapon | View model parts under `models/weapons/` | Attack |
+| --- | --- | --- | --- |
+| 1, at start | lead pipe | `blakjak/` `blakjak`, `hand` | melee: 64 units reach, 15 damage |
+| 2 | pistol | `v_colt/` `pistol`, `handr`, `handl`, `clip` | Quake II's blaster |
+
+Frame names used: `active` (raise, 6), `powr` or `pow` (attack, 4), `putaway` (lower, 5); the last raise frame is held
+while idle. `powl`, `reload`, `walk` and the `magnum` part are unused. The pipe is identified from its skin name
+`pipeskin`. Reach, damage and timing are placeholders. Giving the pistol at the start is temporary, until pickups work.
+There is no ammunition, impact effect or sound.
+
 ## Not shown
 - Characters with spawn flag TRIGGERED_START (2), scripted `*_animate` props, riding motorcycles.
 - Effects and spawn points: fires, smoke, steam, rain, rat and fish spawners, live fish, `light_bulb`,

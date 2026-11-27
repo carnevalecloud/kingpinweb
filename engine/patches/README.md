@@ -20,3 +20,6 @@ loopback message limits so dozens of models fit in view; and adds an optional vi
 
 009 exports `kpweb_health` for the page's health display, and restarts the map when the player dies instead of
 opening the Quake II load menu.
+
+010 starts the player with a lead pipe, a melee weapon, and gives the blaster the Kingpin pistol's view models. The
+page builds the models; the client draws all their parts.

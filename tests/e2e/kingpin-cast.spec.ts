@@ -58,24 +58,36 @@ test("sr1 characters walk, fight as a gang, die, and the player can too", async 
     const hud = page.locator("#hud");
     await expect(hud).toHaveText("Health 100");
 
-    // South of "leroy" and his gang mate "betty": one shot angers both.
-    await command(page, "teleport -1128 1740 30 0 90");
+    // The player starts holding the pipe; the pistol is on key 2.
+    await seen("KP MDX loaded: models/kpweb/view/pipe_1.mdx", 10_000);
     await page.waitForTimeout(3000);
-    await page.locator("#canvas").screenshot({ path: `${reportDir}/before.png` });
-    await command(page, "+attack");
-    await command(page, "-attack");
-    await expect.poll(() => log.filter((l) => l.startsWith("KP cast angry")).length, { timeout: 30_000 }).toBeGreaterThanOrEqual(2);
-    await seen("KP cast punched", 60_000);
-    await expect(hud).not.toHaveText("Health 100");
-    await command(page, "god");
-    await page.screenshot({ path: `${reportDir}/fighting.png` });
+    await page.screenshot({ path: `${reportDir}/pipe.png` });
+    await page.keyboard.press("2");
+    await page.waitForTimeout(4000);
+    await page.screenshot({ path: `${reportDir}/pistol.png` });
+    await page.keyboard.press("1");
+    await page.waitForTimeout(4000);
+
+    // The seated bum stays put, so the pipe alone must be able to finish him.
+    await command(page, "teleport -640 1445 30 15 90");
+    await page.waitForTimeout(3000);
     await command(page, "+attack");
     await seen("KP cast died", 90_000);
     await command(page, "-attack");
-    await page.waitForTimeout(4000);
-    await page.locator("#canvas").screenshot({ path: `${reportDir}/after.png` });
+    await page.screenshot({ path: `${reportDir}/bum.png` });
+
+    // Within reach of "betty": one swing angers her and her gang mate "leroy".
+    await command(page, "teleport -1128 1785 30 0 90");
+    await page.waitForTimeout(3000);
+    await page.locator("#canvas").screenshot({ path: `${reportDir}/before.png` });
+    await command(page, "+attack");
+    await expect.poll(() => log.filter((l) => l.startsWith("KP cast angry")).length, { timeout: 30_000 }).toBeGreaterThanOrEqual(2);
+    await command(page, "-attack");
+    await seen("KP cast punched", 60_000);
+    await expect(hud).not.toHaveText("Health 100");
+    await page.screenshot({ path: `${reportDir}/fighting.png` });
+
     // Dying offers a restart, which brings the map and full health back.
-    await command(page, "god");
     await page.waitForTimeout(6000);
     await command(page, "kill");
     await expect(hud).toContainText("You died", { timeout: 30_000 });

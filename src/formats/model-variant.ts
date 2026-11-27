@@ -22,6 +22,8 @@ export interface VariantOptions {
    * frames. Overrides `animate`.
    */
   sequences?: readonly (readonly string[])[];
+  /** Keep exactly these frames, in this order. Overrides the options above. */
+  frames?: readonly number[];
   /** Uniform scale about the point 24 units below the origin. */
   scale?: number;
 }
@@ -43,7 +45,7 @@ export function normalizeAssetPath(path: string): string {
 const animationName = (frame: string) => frame.toLowerCase().replace(/_?\d+$/, "");
 
 /** Source frame indices of the first unbroken run with this animation name. */
-function run(frames: readonly string[], name: string): number[] {
+export function animationFrames(frames: readonly string[], name: string): number[] {
   const found: number[] = [];
   for (let i = 0; i < frames.length && found.length < MAX_IDLE_FRAMES; i++) {
     if (animationName(frames[i]!) === name) found.push(i);
@@ -63,13 +65,18 @@ export function buildModelVariant(source: Uint8Array, options: VariantOptions = 
   const frameSize = h.frameSize!;
   let kept = [0];
   let lengths: number[] | undefined;
-  if (options.sequences) {
-    const runs = options.sequences.map((names) => names.map((n) => run(model.frames, n)).find((r) => r.length) ?? []);
+  if (options.frames) {
+    if (!options.frames.length || options.frames.some((i) => !Number.isInteger(i) || i < 0 || i >= model.frames.length)) {
+      return null;
+    }
+    kept = [...options.frames];
+  } else if (options.sequences) {
+    const runs = options.sequences.map((names) => names.map((n) => animationFrames(model.frames, n)).find((r) => r.length) ?? []);
     if (options.sequences.some((names, i) => names.length && !runs[i]!.length)) return null;
     kept = runs.flat();
     lengths = runs.map((r) => r.length);
   } else if (options.animate) {
-    kept = run(model.frames, animationName(model.frames[0]!));
+    kept = animationFrames(model.frames, animationName(model.frames[0]!));
   }
   const count = kept.length;
   const skins = (options.skin ? [options.skin] : model.skins).map(normalizeAssetPath).slice(0, 32);

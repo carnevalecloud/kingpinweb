@@ -8,6 +8,7 @@ import { buildModelVariant } from "../../src/formats/model-variant.ts";
 import { readPak } from "../../src/formats/pak.ts";
 import { resolveEntity } from "../../src/kingpin/entity-registry.ts";
 import { buildOverridePak, populateMap, STATIC_FLAGS } from "../../src/kingpin/map-props.ts";
+import { buildViewWeapons } from "../../src/kingpin/view-weapon.ts";
 import { VirtualFileSystem } from "../../src/vfs/vfs.ts";
 import { buildMd2, buildMdx, buildRoomBsp, buildTga } from "../fixtures/builders.ts";
 
@@ -149,6 +150,40 @@ describe("model variants", () => {
     expect(diag.list()).toEqual([]);
     expect(buildModelVariant(buildMdx().slice(0, 120))).toBeNull();
     expect(buildModelVariant(buildMdx(), { skin: "models/../x.tga" })).toBeNull();
+  });
+});
+
+describe("view weapons", () => {
+  const frameNames = (attack: string) => [
+    ...[1, 2, 3, 4, 5, 6].map((n) => `active_0${n}`), ...[1, 2, 3, 4].map((n) => `${attack}_0${n}`),
+    "reload_01", ...[1, 2, 3, 4, 5].map((n) => `putaway_0${n}`),
+  ];
+  const weapons = (paths: [string, string][]) => {
+    const vfs = new VirtualFileSystem();
+    for (const [path, attack] of paths) {
+      vfs.add(`models/weapons/${path}.mdx`, memorySource(namedMdx(frameNames(attack))), "fixture");
+    }
+    vfs.add("models/kpweb/skin.tga", memorySource(buildTga(4, 4, [1, 2, 3])), "fixture");
+    return buildViewWeapons(vfs);
+  };
+  const pipe: [string, string][] = [["blakjak/blakjak", "powr"], ["blakjak/hand", "powr"]];
+
+  it("builds every part with the frames the engine expects", async () => {
+    const pistol = ["pistol", "handr", "handl", "clip"].map((p): [string, string] => [`v_colt/${p}`, "pow"]);
+    const result = await weapons([...pipe, ...pistol]);
+    expect(result.problems).toEqual([]);
+    expect(result.files.map((f) => f.path)).toEqual(
+      ["pipe_0", "pipe_1", "pistol_0", "pistol_1", "pistol_2", "pistol_3"].map((n) => `models/kpweb/view/${n}.mdx`),
+    );
+    const names = decodeMdx(result.files[0]!.data, new Diagnostics())!.frameNames;
+    expect(names).toHaveLength(16);
+    expect([names[6], names[10], names[11]]).toEqual(["powr_01", "active_06", "putaway_01"]);
+  });
+
+  it("leaves out only the weapon with a missing part, and says why", async () => {
+    const result = await weapons([...pipe, ["v_colt/pistol", "pow"]]);
+    expect(result.files).toHaveLength(2);
+    expect(result.problems).toEqual(["missing model models/weapons/v_colt/handr.mdx"]);
   });
 });
 

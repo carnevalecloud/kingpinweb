@@ -4,6 +4,7 @@ import { readPak } from "../formats/pak.ts";
 import { ENGINE_GAME_DIR, listMaps, planGameFiles } from "../kingpin/game-files.ts";
 import { mountGameFiles } from "../vfs/vfs.ts";
 import { buildOverridePak, populateMap } from "../kingpin/map-props.ts";
+import { buildViewWeapons } from "../kingpin/view-weapon.ts";
 import { startEngine } from "./engine-host.ts";
 import { type StoredGame, forgetGame, loadGame, saveGame } from "./game-store.ts";
 
@@ -144,11 +145,14 @@ start.addEventListener("click", async () => {
         const placed = Object.entries(result.placed).map(([kind, n]) => `${n} ${kind}`).join(", ");
         log(`Kingpin models: placed ${placed}; unresolved: ${JSON.stringify(result.unresolved)}; skipped: ${JSON.stringify(result.skipped)}`);
         for (const problem of result.problems) log(`Kingpin models: ${problem}`);
-        if (result.files.length) {
-          skins = new Set(result.skins);
+        const weapons = await buildViewWeapons(vfs);
+        for (const problem of weapons.problems) log(`Kingpin weapon: ${problem}`);
+        const models = [...result.files, ...weapons.files];
+        if (models.length) {
+          skins = new Set([...result.skins, ...weapons.skins]);
           // Yamagi searches other archives before numbered ones, so this overrides
           // the original map without touching the player's files.
-          const data = buildOverridePak([{ path: mapPath, data: result.bytes }, ...result.files]);
+          const data = buildOverridePak([{ path: mapPath, data: result.bytes }, ...models]);
           generated.push({ target: `${ENGINE_GAME_DIR}/zz_kpweb_map.pak`, file: { data } });
         }
       }

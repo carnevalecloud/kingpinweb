@@ -48,6 +48,8 @@ taken from evidence and have collision tests; masked, translucent and sky surfac
   lose and win the fight
 - [ ] Health display, restart on death, all characters solid and mortal, and gangs helping each other. Accept when a
   person has fought and lost in sr1 and seen a gang join in
+- [ ] The player starts with a swinging pipe; the pistol shows and animates. Accept when a person has seen both in sr1
+- [ ] Faithful pipe and pistol behaviour, weapon pickups and ammunition; armed characters
 - [ ] Solid props; pickup behaviour
 
 Evidence and inferred rules: [entity models](docs/compatibility/entity-models.md).
