@@ -1,0 +1,206 @@
+diff --git a/src/client/header/client.h b/src/client/header/client.h
+index eb64507..34954fc 100644
+--- a/src/client/header/client.h
++++ b/src/client/header/client.h
+@@ -33,7 +33,7 @@
+ /* the cl_parse_entities must be large enough to hold UPDATE_BACKUP frames of
+    entities, so that when a delta compressed message arives from the server
+    it can be un-deltad from the original */
+-#define	MAX_PARSE_ENTITIES	1024
++#define	MAX_PARSE_ENTITIES	4096
+ 
+ #define MAX_SUSTAINS		32
+ #define	PARTICLE_GRAVITY 40
+diff --git a/src/client/refresh/files/stb.c b/src/client/refresh/files/stb.c
+index a9d4cc6..99b5fd1 100644
+--- a/src/client/refresh/files/stb.c
++++ b/src/client/refresh/files/stb.c
+@@ -515,6 +515,28 @@ R_LoadImage(const char *name, const char* namewe, const char *ext, imagetype_t t
+ 			if (!pic)
+ 				return NULL;
+ 
++			/* Kingpin skins carry their own palette; the shared Quake II
++			 * colour map would scramble them. */
++			if (type == it_skin && bitsPerPixel == 8 && palette &&
++				width > 0 && height > 0)
++			{
++				byte *rgba = malloc((size_t)width * height * 4);
++
++				if (rgba)
++				{
++					int i;
++
++					for (i = 0; i < width * height; i++)
++					{
++						memcpy(rgba + 4 * i, palette + 3 * pic[i], 3);
++						rgba[4 * i + 3] = 255;
++					}
++					free(pic);
++					pic = rgba;
++					bitsPerPixel = 32;
++				}
++			}
++
+ 			image = load_image(name, pic,
+ 				width, width,
+ 				height, height,
+diff --git a/src/client/vid/header/ref.h b/src/client/vid/header/ref.h
+index 1973a32..2c5ab38 100644
+--- a/src/client/vid/header/ref.h
++++ b/src/client/vid/header/ref.h
+@@ -31,7 +31,7 @@
+ #include "vid.h"
+ 
+ #define	MAX_DLIGHTS		32
+-#define	MAX_ENTITIES	128
++#define	MAX_ENTITIES	1024
+ #define	MAX_PARTICLES	4096
+ #define	MAX_LIGHTSTYLES	256
+ 
+diff --git a/src/common/header/common.h b/src/common/header/common.h
+index 0da5343..0b18c3b 100644
+--- a/src/common/header/common.h
++++ b/src/common/header/common.h
+@@ -520,7 +520,7 @@ extern qboolean userinfo_modified;
+ /* NET */
+ 
+ #define PORT_ANY -1
+-#define MAX_MSGLEN 1400             /* max length of a message */
++#define MAX_MSGLEN 16384            /* max length of a message (loopback only) */
+ #define PACKET_HEADER 10            /* two ints and a short */
+ 
+ typedef enum
+diff --git a/src/game/g_cmds.c b/src/game/g_cmds.c
+index d28e7b2..530375b 100644
+--- a/src/game/g_cmds.c
++++ b/src/game/g_cmds.c
+@@ -1300,9 +1300,9 @@ Cmd_Teleport_f(edict_t *ent)
+ 		return;
+ 	}
+ 
+-	if (gi.argc() != 4)
++	if (gi.argc() != 4 && gi.argc() != 6)
+ 	{
+-		gi.cprintf(ent, PRINT_HIGH, "Usage: teleport x y z\n");
++		gi.cprintf(ent, PRINT_HIGH, "Usage: teleport x y z [pitch yaw]\n");
+ 		return;
+ 	}
+ 
+@@ -1329,6 +1329,18 @@ Cmd_Teleport_f(edict_t *ent)
+ 	VectorClear(ent->client->ps.viewangles);
+ 	VectorClear(ent->client->v_angle);
+ 
++	/* Optionally face a given direction, for repeatable inspection views. */
++	if (gi.argc() == 6)
++	{
++		int i;
++
++		for (i = 0; i < 2; i++)
++		{
++			ent->client->ps.pmove.delta_angles[i] = ANGLE2SHORT(
++					atof(gi.argv(4 + i)) - ent->client->resp.cmd_angles[i]);
++		}
++	}
++
+ 	/* Telefrag everything that's in the target location. */
+ 	KillBox(ent);
+ 
+diff --git a/src/game/g_spawn.c b/src/game/g_spawn.c
+index 4214a78..be0823b 100644
+--- a/src/game/g_spawn.c
++++ b/src/game/g_spawn.c
+@@ -101,17 +101,66 @@ void SP_path_corner(edict_t *self);
+ void SP_point_combat(edict_t *self);
+ 
+ void SP_misc_explobox(edict_t *self);
++/* spawnflags set by src/kingpin/map-props.ts */
++#define KP_DROP_CAST 1
++#define KP_MAP_LIT 2
++#define KP_ANIMATE 4
++#define KP_DROP_ITEM 8
++
++/* Runs after brush entities have linked: drop onto the floor, then cycle the
++ * idle frames if requested. */
++static void KP_StaticThink(edict_t *ent)
++{
++	if (ent->spawnflags & (KP_DROP_CAST | KP_DROP_ITEM))
++	{
++		vec3_t mins = {-16, -16, -16}, maxs = {16, 16, 16}, start, end;
++		trace_t tr;
++
++		if (ent->spawnflags & KP_DROP_CAST)
++		{
++			mins[2] = -24;
++			maxs[2] = 48;
++		}
++		VectorCopy(ent->s.origin, start);
++		VectorCopy(ent->s.origin, end);
++		start[2] += 1;
++		end[2] -= 256;
++		tr = gi.trace(start, mins, maxs, end, ent, MASK_SOLID);
++		/* Keep the authored position when the box does not fit or finds no floor. */
++		if (!tr.startsolid && !tr.allsolid && tr.fraction < 1.0f)
++		{
++			VectorCopy(tr.endpos, ent->s.origin);
++			VectorCopy(tr.endpos, ent->s.old_origin);
++			gi.linkentity(ent);
++		}
++		ent->spawnflags &= ~(KP_DROP_CAST | KP_DROP_ITEM);
++	}
++	if ((ent->spawnflags & KP_ANIMATE) && ent->count > 1)
++	{
++		ent->s.frame = (ent->s.frame + 1) % ent->count;
++		ent->nextthink = level.time + FRAMETIME;
++	}
++}
++
+ static void KP_StaticModel(edict_t *ent)
+ {
+ 	if (!ent->model || !ent->model[0]) { G_FreeEdict(ent); return; }
+ 	ent->movetype = MOVETYPE_NONE;
+ 	ent->solid = SOLID_NOT;
+ 	ent->s.modelindex = gi.modelindex(ent->model);
+-	ent->s.renderfx |= RF_FULLBRIGHT;
++	if (!(ent->spawnflags & KP_MAP_LIT))
++	{
++		ent->s.renderfx |= RF_FULLBRIGHT;
++	}
+ 	ent->s.skinnum = ent->style >= 0 && ent->style < 32 ? ent->style : 0;
+ 	VectorSet(ent->mins, -32, -32, -32);
+ 	VectorSet(ent->maxs, 32, 32, 64);
+-	gi.dprintf("KP static model: %s index %d\n", ent->model, ent->s.modelindex);
++	if (ent->spawnflags & (KP_DROP_CAST | KP_ANIMATE | KP_DROP_ITEM))
++	{
++		ent->think = KP_StaticThink;
++		ent->nextthink = level.time + 2 * FRAMETIME;
++	}
++	gi.dprintf("KP static model: %s index %d at %s\n", ent->model, ent->s.modelindex, vtos(ent->s.origin));
+ 	gi.linkentity(ent);
+ }
+ 
+diff --git a/src/server/sv_init.c b/src/server/sv_init.c
+index db7775c..5002a55 100644
+--- a/src/server/sv_init.c
++++ b/src/server/sv_init.c
+@@ -434,7 +434,7 @@ SV_InitGame(void)
+ 	svs.gamemode = gamemode;
+ 	svs.spawncount = randk();
+ 	svs.clients = Z_Malloc(sizeof(client_t) * maxclients->value);
+-	svs.num_client_entities = maxclients->value * UPDATE_BACKUP * 64;
++	svs.num_client_entities = maxclients->value * UPDATE_BACKUP * 256;
+ 	svs.client_entities = Z_Malloc( sizeof(entity_state_t) * svs.num_client_entities);
+ 
+ 	/* init network stuff */
+diff --git a/src/server/sv_main.c b/src/server/sv_main.c
+index 70fc6d1..58481dc 100644
+--- a/src/server/sv_main.c
++++ b/src/server/sv_main.c
+@@ -685,7 +685,7 @@ SV_FinalMessage(char *message, qboolean reconnect)
+ 	 *     with the maxclients value from when the current server was started (see SV_InitGame())
+ 	 *     so we can just calculate the right number of clients from that
+ 	 */
+-	int numClients = svs.num_client_entities / ( UPDATE_BACKUP * 64 );
++	int numClients = svs.num_client_entities / ( UPDATE_BACKUP * 256 );
+ 	for (i = 0, cl = svs.clients; i < numClients; i++, cl++)
+ 	{
+ 		if (cl->state >= cs_connected)

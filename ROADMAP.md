@@ -33,10 +33,17 @@ taken from evidence and have collision tests; masked, translucent and sky surfac
 - Opt-in 54-map runtime test matrix defined for both flavours; full run pending
 
 ### Sprint 5: Models and props (prioritized ahead of physics tuning)
-- Rendering-oriented TypeScript MDX decoder implemented; synthetic test execution pending.
-- Native WASM renderer integration, skin loading and in-world props remain pending.
-Accept when: MDX and MD2 render with skins and animation, checked against synthetic fixtures and real files;
-static props (starting with `junior`) appear. Resolve MDX files exceeding the documented 512 frames.
+- [x] MDX and MD2 render natively with skins; synthetic MDX pixel test passes
+- [x] Original props, light fixtures, characters and pickups appear in sr1: 42 props, 18 characters, 10 pickups,
+  none unresolved; checked by screenshots and by comparing views with entity drawing off
+- [x] Characters assembled from head, body and legs with `art_skins`, standing and cycling an idle animation
+- [x] sr2-sr4, bar_sr, pv_h and sy2 load with models and no model errors (start view only, not toured)
+- [ ] A person has walked sr1 and recorded placement defects
+- [ ] Hats, cigars and held weapons; triggered characters; scripted prop animations
+- [ ] `junior` (item placed by the thousand, no definition entry examined yet), fires, smoke and flares
+- [ ] Solid props and characters; pickup behaviour
+
+Evidence and inferred rules: [entity models](docs/compatibility/entity-models.md).
 
 ### Sprint 6+
 Interactive world entities and level changes; sounds; save/load; weapons and inventory; NPCs, navigation data and

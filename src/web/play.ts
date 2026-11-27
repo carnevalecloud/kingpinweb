@@ -1,9 +1,9 @@
-import { blobSource, memorySource } from "../formats/binary.ts";
+import { blobSource } from "../formats/binary.ts";
 import { Diagnostics } from "../formats/diagnostics.ts";
 import { readPak } from "../formats/pak.ts";
 import { ENGINE_GAME_DIR, listMaps, planGameFiles } from "../kingpin/game-files.ts";
 import { mountGameFiles } from "../vfs/vfs.ts";
-import { buildPropPak, populateMapProps } from "../kingpin/map-props.ts";
+import { buildOverridePak, populateMap } from "../kingpin/map-props.ts";
 import { startEngine } from "./engine-host.ts";
 import { type StoredGame, forgetGame, loadGame, saveGame } from "./game-store.ts";
 
@@ -129,28 +129,43 @@ start.addEventListener("click", async () => {
   preference(mapSelect.value);
   start.disabled = forget.disabled = true;
   try {
+    const kingpin = engineSelect.value === "kingpin";
+    const paths = game.files.map(({ target, blob }) => ({ path: target.slice(ENGINE_GAME_DIR.length + 1), blob }));
+    const generated: { target: string; file: { data: Uint8Array } }[] = [];
+    // The experimental engine loads only the loose models and skins this map needs.
+    let skins = new Set<string>();
+    if (kingpin) {
+      status.textContent = `Placing models in ${mapSelect.value}…`;
+      const vfs = await mountGameFiles(paths.map(({ path, blob }) => ({ path, source: blobSource(blob) })), new Diagnostics());
+      const mapPath = `maps/${mapSelect.value}.bsp`;
+      const map = vfs.find(mapPath);
+      if (map) {
+        const result = await populateMap(await map.source.read(0, map.source.size), vfs);
+        const placed = Object.entries(result.placed).map(([kind, n]) => `${n} ${kind}`).join(", ");
+        log(`Kingpin models: placed ${placed}; unresolved: ${JSON.stringify(result.unresolved)}; skipped: ${JSON.stringify(result.skipped)}`);
+        for (const problem of result.problems) log(`Kingpin models: ${problem}`);
+        if (result.files.length) {
+          skins = new Set(result.skins);
+          // Yamagi searches other archives before numbered ones, so this overrides
+          // the original map without touching the player's files.
+          const data = buildOverridePak([{ path: mapPath, data: result.bytes }, ...result.files]);
+          generated.push({ target: `${ENGINE_GAME_DIR}/zz_kpweb_map.pak`, file: { data } });
+        }
+      }
+    }
+    const needed = game.files.filter(({ target }) => {
+      const path = target.slice(ENGINE_GAME_DIR.length + 1);
+      return !kingpin || !path.startsWith("models/") || skins.has(path);
+    });
     const files = [];
     let bytes = 0;
-    for (const [index, { target, blob }] of game.files.entries()) {
-      if (index % 50 === 0) status.textContent = `Reading game files… ${index}/${game.files.length}`;
+    for (const [index, { target, blob }] of needed.entries()) {
+      if (index % 50 === 0) status.textContent = `Reading game files… ${index}/${needed.length}`;
       const data = new Uint8Array(await blob.arrayBuffer());
       bytes += data.length;
       files.push({ target, file: { data } });
     }
-    if (engineSelect.value === "kingpin") {
-      const vfs = await mountGameFiles(files.map(f => ({path:f.target.slice(ENGINE_GAME_DIR.length+1),source:memorySource(f.file.data)})),new Diagnostics());
-      const mapPath = "maps/" + mapSelect.value + ".bsp";
-      const map = vfs.find(mapPath);
-      if(map) {
-        const result=populateMapProps(await map.source.read(0,map.source.size),vfs);
-        log("Kingpin props: "+result.placed+" placed; unresolved: "+JSON.stringify(result.unresolved));
-        if(result.placed) {
-          // A final numbered PAK overrides the original map without modifying the user's files.
-          const target=ENGINE_GAME_DIR+"/pak99_kpweb_props.pak";
-          files.push({target,file:{data:buildPropPak(mapPath,result.bytes)}});
-        }
-      }
-    }
+    files.push(...generated);
     status.textContent = `Loaded ${files.length} files (${megabytes(bytes)}). Starting ${mapSelect.value}…`;
     $("#setup").hidden = true;
     const canvas = $<HTMLCanvasElement>("#canvas");

@@ -3,7 +3,7 @@
 A browser-native compatibility engine for *Kingpin: Life of Crime* (1999), built from player-supplied game files.
 Not a remake, a stream or an emulator.
 
-**Status: you can walk around original maps. The game is not playable.** See [COMPATIBILITY.md](COMPATIBILITY.md).
+**Status: you can walk around original maps with their props and characters in place. The game is not playable.** See [COMPATIBILITY.md](COMPATIBILITY.md).
 
 No game files are included, and none may be committed.
 
@@ -16,7 +16,8 @@ Docker and DDEV 1.25 or newer. Everything else (Node, Emscripten, browsers) is p
 ```bash
 ddev start
 ddev npm ci
-ddev engine build      # fetches pinned sources, compiles to public/engine/
+ddev engine build --flavour=upstream   # fetches pinned sources, compiles to public/engine/
+ddev engine build --flavour=kingpin    # the patched engine that shows models
 ddev npm run build     # static site in dist/
 ```
 
@@ -26,7 +27,7 @@ Open <https://kingpinweb.ddev.site>. **Map walkthrough** asks for your Kingpin f
 
 ## Experimental engine
 
-Build both flavours with `ddev engine build --flavour=upstream` and `ddev engine build --flavour=kingpin`, then rebuild the site. The walkthrough engine selector defaults to the reference build. The experimental flavour targets `/main` and separate engine storage; it still uses Quake II game logic; only the synthetic room and five maps have been run. Existing remembered imports work with either flavour.
+Build both flavours, then rebuild the site. The walkthrough engine selector defaults to the experimental build, which shows [original models](docs/compatibility/entity-models.md). Choose the folder that includes `main/models`. The experimental flavour targets `/main` and separate engine storage; it still uses Quake II game logic; only the synthetic room and five maps have been run. Existing remembered imports work with either flavour.
 
 ## Full map audit
 

@@ -3,6 +3,14 @@
 Tested 2026-11-26 with a Steam installation, headless Chromium with software WebGL, engine unmodified.
 Per-map and per-entity tables: [maps](docs/compatibility/maps.md), [entities](docs/compatibility/entities.md).
 
+## Models in the experimental engine
+
+When a map is started, the page rewrites its entity list in memory and packs the needed models into an extra
+archive; the player's files are unchanged. Props, light fixtures, characters and pickups appear as static scenery:
+not solid, no AI, no behaviour. Characters cycle one idle animation. Details and gaps:
+[entity models](docs/compatibility/entity-models.md). Model lighting is Quake II's point sample of the lightmap.
+Only sr1 has been toured by automated viewpoints.
+
 ## Experimental engine
 
 The experimental build includes a native `main` directory, isolated storage, and suppression of the incompatible Quake II status bar. On 2026-11-26 it started the synthetic room and loaded and walked sr1-sr4 and bar_sr, with the same Quake II physics. The opt-in 54-map matrix has not been run. The tables below describe the unmodified engine.
@@ -15,9 +23,9 @@ The experimental build includes a native `main` directory, isolated storage, and
 | Walking, gravity, wall collision (Quake II rules) | Synthetic test; movement on the five maps |
 | Remembering selected files | Browser test, synthetic and real files |
 
-## Does not work or is unverified
+## Does not work or is unverified (upstream engine)
 - **Player physics are Quake II's.** Size, eye height, speed and jumping are not Kingpin's.
-- **No characters or props.** 187 of 231 classnames have no spawn function. Models and sounds are not loaded.
+- **No characters or props in the upstream engine.** 187 of 231 classnames have no spawn function. Models and sounds are not loaded.
 - Doors, buttons, triggers, level changes and cutscenes are untested; matching names may behave differently.
 - Surface flags beyond Quake II are ignored. Transparency, flares, fog, fire and smoke are missing or unverified.
 - Sky loading failed for at least one face in bar_sr.

@@ -29,11 +29,13 @@ test("starts a map from a selected folder, remembers it and can forget it", asyn
   await expect(page.getByRole("button", { name: "Start" })).toBeDisabled();
   await page.locator("#folder").setInputFiles(game);
   await expect(page.locator("#saved")).toContainText("Saved in this browser: 1 files");
+  await page.locator("#engine").selectOption("upstream");
   await startRoom(page);
 
   // A fresh visit needs no folder selection.
   await page.reload();
   await expect(page.locator("#status")).toContainText("Using your saved game files");
+  await page.locator("#engine").selectOption("upstream");
   await startRoom(page);
 
   await page.reload();

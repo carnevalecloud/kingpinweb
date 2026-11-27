@@ -31,7 +31,13 @@ Wrangler 4.168.0 (MIT or Apache-2.0), Playwright 1.64.0 (Apache-2.0), TypeScript
 ## Not used
 **Kingpin SDK.** Not downloaded or read. A search result summary of its readme says it is for personal
 non-commercial use and restricts reverse engineering; the full text is unreviewed. Research material only until
-cleared. The editing tools shipped inside the game folder (`kprad/`) are likewise unused.
+cleared. The editing tools shipped inside the game folder (`kprad/`) are not run, and the game's executables and
+libraries were not examined.
+
+## Installed game data read for facts
+`kprad/kingpin.def` (editor entity definitions in the player's installation) was read for classnames, model paths,
+bounding boxes, spawn flag names and key names. Its text is not copied or distributed. Its licence is unreviewed.
+See [entity models](docs/compatibility/entity-models.md).
 
 ## Game data
 Never included. Players supply their own. `gamedata/` is local and gitignored.
