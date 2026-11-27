@@ -1,0 +1,17 @@
+diff --git a/src/game/g_spawn.c b/src/game/g_spawn.c
+--- a/src/game/g_spawn.c
++++ b/src/game/g_spawn.c
+@@ -104,1 +104,10 @@
++static void KP_StaticModel(edict_t *ent)
++{
++	if (!ent->model || !ent->model[0]) { G_FreeEdict(ent); return; }
++	ent->movetype = MOVETYPE_NONE;
++	ent->solid = SOLID_NOT;
++	ent->s.modelindex = gi.modelindex(ent->model);
++	gi.linkentity(ent);
++}
++
+ void SP_misc_banner(edict_t *self);
+@@ -222,1 +231,2 @@
++	{"kpweb_static_model", KP_StaticModel},
+ 	{"misc_banner", SP_misc_banner},
