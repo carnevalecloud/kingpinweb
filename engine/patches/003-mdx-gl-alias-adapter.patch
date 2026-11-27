@@ -103,7 +103,7 @@ diff --git a/src/client/refresh/files/models.c b/src/client/refresh/files/models
 +	return out;
 +}
 +
-@@ -48,1 +148,11 @@
+@@ -48,1 +148,12 @@
 +	if (modfilelen >= 4 && KP_Read32((const byte *)buffer) == 0x58504449)
 +	{
 +		int converted_len;
@@ -111,6 +111,7 @@ diff --git a/src/client/refresh/files/models.c b/src/client/refresh/files/models
 +		void *result;
 +		if (!converted) { Com_Printf("Invalid MDX: %s\n", mod_name); return NULL; }
 +		result = Mod_LoadMD2(mod_name, converted, converted_len, mins, maxs, skins, find_image, type);
++		if (result) Com_Printf("KP MDX loaded: %s\n", mod_name);
 +		free(converted);
 +		return result;
 +	}
