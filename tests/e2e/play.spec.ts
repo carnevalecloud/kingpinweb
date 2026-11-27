@@ -1,7 +1,7 @@
 // The walkthrough page, driven with a synthetic "Kingpin" folder.
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { type Page, expect, test } from "@playwright/test";
-import { buildPak, syntheticGameFiles } from "../fixtures/builders.ts";
+import { buildPak, syntheticGameFiles, syntheticMdxPropFiles } from "../fixtures/builders.ts";
 
 async function startRoom(page: Page): Promise<void> {
   const log: string[] = [];
@@ -72,4 +72,33 @@ test("does not save when asked not to, and explains an unusable folder", async (
   await expect(page.locator("#status")).toContainText("Using your saved game files");
   await page.locator("#engine").selectOption("kingpin");
   await startRoom(page);
+});
+
+test("experimental WebGL engine draws a textured MDX prop", async ({ page }, info) => {
+  test.skip(!existsSync("dist/engine/kingpin/index.js"), "experimental engine not built");
+  test.setTimeout(180_000);
+  const game = info.outputPath("Kingpin");
+  mkdirSync(`${game}/main`, { recursive: true });
+  writeFileSync(`${game}/main/Pak0.pak`, buildPak(syntheticMdxPropFiles()));
+  await page.goto("/play.html");
+  await page.locator("#engine").selectOption("kingpin");
+  await page.locator("#folder").setInputFiles(game);
+  await expect(page.locator("#start")).toBeEnabled();
+  await startRoom(page);
+  await expect.poll(async () => {
+    const png = (await page.locator("#canvas").screenshot()).toString("base64");
+    return page.evaluate(async data => {
+      const image = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob());
+      const ctx = new OffscreenCanvas(image.width, image.height).getContext("2d")!;
+      ctx.drawImage(image, 0, 0);
+      const pixels = ctx.getImageData(0, 0, image.width, image.height).data;
+      let red = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const r = pixels[i]!, g = pixels[i+1]!, b = pixels[i+2]!;
+        if (r > 40 && r > 2*g && r > 2*b) red++;
+      }
+      image.close();
+      return red / (pixels.length / 4);
+    }, png);
+  }, { timeout: 90_000 }).toBeGreaterThan(0.005);
 });
