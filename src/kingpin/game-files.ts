@@ -19,8 +19,8 @@ export function engineTarget(target: string, flavour: EngineFlavour): string {
   return `${engineGameDir(flavour)}/${relative}`;
 }
 
-/** World geometry needs these; models and sounds are not used yet. */
-const WANTED = /^(?:[^/]+\.pak|textures\/.+|maps\/[^/]+\.bsp|pics\/.+|env\/.+)$/;
+/** Allow world assets and loose model geometry/skins; sounds are not used yet. */
+const WANTED = /^(?:[^/]+\.pak|textures\/.+|maps\/[^/]+\.bsp|pics\/.+|env\/.+|models\/.+\.(?:mdx|md2|tga|pcx|png|jpg))$/;
 
 export interface PlannedFile<T> {
   /** Absolute path in the engine's virtual filesystem. */
