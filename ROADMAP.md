@@ -41,7 +41,9 @@ taken from evidence and have collision tests; masked, translucent and sky surfac
 - [ ] A person has walked sr1 and recorded placement defects
 - [ ] Hats, cigars and held weapons; triggered characters; scripted prop animations
 - [ ] `junior` (item placed by the thousand, no definition entry examined yet), fires, smoke and flares
-- [ ] Solid props and characters; pickup behaviour
+- [ ] Thugs and punks are solid, take damage, die and walk unscripted paths. Accept when a person has seen, in sr1,
+  a thug block them, flinch and die when shot, and the punk walking its loop. Built; not yet run in game
+- [ ] Solid props and other characters; pickup behaviour
 
 Evidence and inferred rules: [entity models](docs/compatibility/entity-models.md).
 

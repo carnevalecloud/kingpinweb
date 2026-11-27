@@ -27,11 +27,11 @@ const VIEWS = [
   { name: "indoor-pickups", at: [904, 200, 295], from: 180, distance: 90, up: 35 },
 ];
 
-/** Arguments for the teleport command; it raises the player by 10, eyes sit 22 higher. */
+/** Arguments for the teleport command; it raises the player by 10, eyes sit 40 higher. */
 function viewpoint({ at, from, distance, up }: (typeof VIEWS)[number]): string {
   const radians = (from * Math.PI) / 180;
   const x = at[0]! + distance * Math.cos(radians), y = at[1]! + distance * Math.sin(radians);
-  const pitch = (Math.atan2(up + 22, distance) * 180) / Math.PI;
+  const pitch = (Math.atan2(up + 40, distance) * 180) / Math.PI;
   return [x, y, at[2]! + up - 10, pitch, (from + 180) % 360].map(Math.round).join(" ");
 }
 

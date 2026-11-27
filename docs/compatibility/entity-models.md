@@ -34,6 +34,16 @@ icon; the `g_flamegun` models are used), `key_fuse`, the four weapon mods, `item
 | `scale` scales a character about its feet | Key name; used by 11 distinct values |
 | `option` and `lightit` do not affect visibility | The definition describes `option` as a detail-level switch; `lightit` is unexplained and ignored |
 
+## Driven characters (patch 007)
+
+Standing `cast_thug` and `cast_punk` are solid, take damage, flinch, die, and walk `path_corner_cast` chains. The
+engine code is `engine/kingpin/kp_cast.c`, written against the Quake II game module. Other characters stay scenery.
+
+- Animations used, by frame name: `amb_stand` or `stand`, `walk_guns_dn`, `pain_chest`, `death1`.
+- Walk speed (60 units per second), the pain delay and default health (100) are placeholders, not measurements.
+- Paths whose first node has a `scriptname` are ignored: they belong to cutscenes.
+- They never attack or react beyond flinching. There are no sounds, and saving is untested.
+
 ## Not shown
 - Characters with spawn flag TRIGGERED_START (2), scripted `*_animate` props, riding motorcycles.
 - Effects and spawn points: fires, smoke, steam, rain, rat and fish spawners, live fish, `light_bulb`,

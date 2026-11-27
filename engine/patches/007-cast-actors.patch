@@ -1,0 +1,70 @@
+--- a/src/game/g_spawn.c
++++ b/src/game/g_spawn.c
+@@ -109,7 +109,7 @@
+ 
+ /* Runs after brush entities have linked: drop onto the floor, then cycle the
+  * idle frames if requested. */
+-static void KP_StaticThink(edict_t *ent)
++void KP_StaticThink(edict_t *ent)
+ {
+ 	if (ent->spawnflags & (KP_DROP_CAST | KP_DROP_ITEM))
+ 	{
+@@ -142,6 +142,8 @@
+ 	}
+ }
+ 
++#include "kingpin/kp_cast.c"
++
+ static void KP_StaticModel(edict_t *ent)
+ {
+ 	if (!ent->model || !ent->model[0]) { G_FreeEdict(ent); return; }
+@@ -283,6 +285,8 @@
+ 
+ 	{"misc_explobox", SP_misc_explobox},
+ 	{"kpweb_static_model", KP_StaticModel},
++	{"kpweb_cast", SP_kpweb_cast},
++	{"path_corner_cast", SP_path_corner_cast},
+ 	{"misc_banner", SP_misc_banner},
+ 	{"misc_satellite_dish", SP_misc_satellite_dish},
+ 	{"misc_gib_arm", SP_misc_gib_arm},
+--- a/src/game/header/local.h
++++ b/src/game/header/local.h
+@@ -1120,6 +1120,10 @@
+ 
+ 	/* common data blocks */
+ 	moveinfo_t moveinfo;
++	/* Kingpin characters (not saved): animation lengths and the current one. */
++	int kp_frames[4];
++	int kp_sequence;
++
+ 	monsterinfo_t monsterinfo;
+ };
+ 
+--- a/src/game/savegame/tables/gamefunc_decs.h
++++ b/src/game/savegame/tables/gamefunc_decs.h
+@@ -841,6 +841,11 @@
+ extern void TH_viewthing ( edict_t * ent ) ;
+ extern void SP_point_combat ( edict_t * self ) ;
+ extern void point_combat_touch ( edict_t * self , edict_t * other , cplane_t * plane , csurface_t * surf ) ;
++extern void KP_StaticThink ( edict_t * ent ) ;
++extern void KP_CastStart ( edict_t * self ) ;
++extern void KP_CastThink ( edict_t * self ) ;
++extern void KP_CastPain ( edict_t * self , edict_t * other , float kick , int damage ) ;
++extern void KP_CastDie ( edict_t * self , edict_t * inflictor , edict_t * attacker , int damage , vec3_t point ) ;
+ extern void SP_path_corner ( edict_t * self ) ;
+ extern void path_corner_touch ( edict_t * self , edict_t * other , cplane_t * plane , csurface_t * surf ) ;
+ extern void BecomeExplosion2 ( edict_t * self ) ;
+--- a/src/game/savegame/tables/gamefunc_list.h
++++ b/src/game/savegame/tables/gamefunc_list.h
+@@ -840,6 +840,11 @@
+ {"TH_viewthing", (byte *)TH_viewthing},
+ {"SP_point_combat", (byte *)SP_point_combat},
+ {"point_combat_touch", (byte *)point_combat_touch},
++{"KP_StaticThink", (byte *)KP_StaticThink},
++{"KP_CastStart", (byte *)KP_CastStart},
++{"KP_CastThink", (byte *)KP_CastThink},
++{"KP_CastPain", (byte *)KP_CastPain},
++{"KP_CastDie", (byte *)KP_CastDie},
+ {"SP_path_corner", (byte *)SP_path_corner},
+ {"path_corner_touch", (byte *)path_corner_touch},
+ {"BecomeExplosion2", (byte *)BecomeExplosion2},

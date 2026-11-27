@@ -104,6 +104,26 @@ function animatedMdx(): Uint8Array {
   return all;
 }
 
+/** The fixture MDX repeated once per name. */
+function namedMdx(names: string[]): Uint8Array {
+  const one = buildMdx();
+  const header = new DataView(one.buffer);
+  const frames = header.getInt32(15 * 4, true), size = header.getInt32(4 * 4, true);
+  const all = new Uint8Array(one.length + size * names.length);
+  all.set(one);
+  names.forEach((name, i) => {
+    const at = one.length + i * size;
+    all.set(one.subarray(frames, frames + size), at);
+    all.fill(0, at + 24, at + 40);
+    all.set(new TextEncoder().encode(name), at + 24);
+  });
+  const view = new DataView(all.buffer);
+  view.setInt32(9 * 4, names.length, true);
+  view.setInt32(15 * 4, one.length, true);
+  view.setInt32(22 * 4, all.length, true);
+  return all;
+}
+
 describe("model variants", () => {
   it("keeps the idle run, replaces the skin and stays a valid MDX", () => {
     const variant = buildModelVariant(animatedMdx(), { animate: true, skin: "\\Models\\KPWeb\\Other.TGA" })!;
@@ -165,7 +185,10 @@ describe("map population", () => {
     expect(source).toEqual(before);
     expect(result.placed).toEqual({ prop: 3, light: 0, pickup: 0, character: 1 });
     expect(result.unresolved).toEqual({ props_fan: 1, props_mystery: 1 });
-    expect(result.problems).toEqual(["missing model models/props/fan/tris.md2"]);
+    expect([...result.problems].sort()).toEqual([
+      "cast_thug: animations unusable; shown as scenery",
+      "missing model models/props/fan/tris.md2",
+    ]);
     expect(result.files).toHaveLength(5);
     expect(result.skins).toContain("models/actors/thug/head_001.tga");
     const placed = entitiesOf(result.bytes).filter((e) => e.get("classname") === "kpweb_static_model");
@@ -177,6 +200,27 @@ describe("map population", () => {
     const cast = placed.filter((e) => e.get("origin") === "7 8 9");
     expect(cast).toHaveLength(3);
     expect(Number(cast[0]!.get("spawnflags")) & STATIC_FLAGS.dropCast).toBeTruthy();
+  });
+
+  it("hands an animated thug to the engine, following only unscripted paths", async () => {
+    const names = ["amb_stand_01", "walk_guns_dn_01", "pain_chest_01", "death1_01", "death1_02"];
+    const animated = new VirtualFileSystem();
+    for (const part of ["head", "body", "legs"]) {
+      animated.add(`models/actors/thug/${part}.mdx`, memorySource(namedMdx(names)), "fixture");
+      animated.add(`models/actors/thug/${part}_001.tga`, memorySource(files.get(`models/actors/thug/${part}_001.tga`)!), "fixture");
+    }
+    animated.add("models/kpweb/skin.tga", memorySource(files.get("models/kpweb/skin.tga")!), "fixture");
+    const result = await populateMap(map(
+      '{"classname" "cast_thug" "origin" "1 1 1" "target" "a" "health" "80"}' +
+      '{"classname" "cast_thug" "origin" "2 2 2" "target" "b"}' +
+      '{"classname" "path_corner_cast" "targetname" "a"}' +
+      '{"classname" "path_corner_cast" "targetname" "b" "scriptname" "s"}',
+    ), animated);
+    expect(result.placed.character).toBe(2);
+    const casts = entitiesOf(result.bytes).filter((e) => e.get("classname") === "kpweb_cast");
+    expect(casts[0]!.get("message")).toMatch(/^models\/kpweb\/\d{3}\.mdx models\/kpweb\/\d{3}\.mdx 1 1 1 2$/);
+    expect([casts[0]!.get("target"), casts[0]!.get("health")]).toEqual(["a", "80"]);
+    expect(casts[1]!.has("target")).toBe(false);
   });
 
   it("omits a character with a missing part and leaves other maps unchanged", async () => {

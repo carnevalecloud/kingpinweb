@@ -36,6 +36,7 @@ build_once() {
   done
 
   if [ "$flavour" = kingpin ]; then
+    cp -r "$engine_dir/kingpin" "$build/qwasm2/src/game/kingpin"
     for patch in "$engine_dir"/patches/*.patch; do
       [ -f "$patch" ] || continue
       # The build tree lies inside this repository. Without the ceiling, git

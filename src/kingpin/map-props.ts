@@ -12,6 +12,8 @@ export const STATIC_FLAGS = { dropCast: 1, mapLit: 2, animate: 4, dropItem: 8 } 
 
 /** Protocol limit on model indices, and the share left to the game module. */
 const MAX_MODELS = 256;
+/** Frame names for idle, walk, pain and death, in the order kpweb_cast expects. */
+const ACTOR_SEQUENCES = [["amb_stand", "stand"], ["walk_guns_dn"], ["pain_chest"], ["death1"]];
 const RESERVED_MODELS = 48;
 /** The engine's limit on entity text (MAX_MAP_ENTSTRING). */
 const MAX_ENTITY_TEXT = 0x40000;
@@ -71,7 +73,7 @@ export async function populateMap(bytes: Uint8Array, vfs: VirtualFileSystem): Pr
   // Brush models use model indices too.
   const inline = Math.floor(Math.max(view.i32(8 + MODEL_LUMP * 8 + 4), 0) / MODEL_SIZE);
   const budget = MAX_MODELS - RESERVED_MODELS - inline;
-  const variants = new Map<string, { path: string; frames: number } | null>();
+  const variants = new Map<string, { path: string; frames: number; lengths?: number[] } | null>();
   const skins = new Set<string>();
 
   const findSkin = (path: string) => {
@@ -90,9 +92,9 @@ export async function populateMap(bytes: Uint8Array, vfs: VirtualFileSystem): Pr
     return fallback;
   };
 
-  const variant = async (part: Part, resolution: Resolution) => {
+  const variant = async (part: Part, resolution: Resolution, actor = false) => {
     const skin = chooseSkin(part);
-    const key = [part.model, skin ?? "", resolution.animate ?? false, resolution.scale].join("|");
+    const key = [part.model, skin ?? "", resolution.animate ?? false, resolution.scale, actor].join("|");
     const known = variants.get(key);
     if (known !== undefined) return known;
     const file = vfs.find(part.model);
@@ -107,9 +109,11 @@ export async function populateMap(bytes: Uint8Array, vfs: VirtualFileSystem): Pr
     }
     const built = buildModelVariant(await file.source.read(0, file.source.size), {
       ...(skin ? { skin } : {}), animate: resolution.animate ?? false, scale: resolution.scale,
+      ...(actor ? { sequences: ACTOR_SEQUENCES } : {}),
     });
     if (!built) {
-      problems.add(`unusable model ${part.model}`);
+      // The caller reports a character that cannot be animated.
+      if (!actor) problems.add(`unusable model ${part.model}`);
       variants.set(key, null);
       return null;
     }
@@ -120,7 +124,7 @@ export async function populateMap(bytes: Uint8Array, vfs: VirtualFileSystem): Pr
     }
     const path = `models/kpweb/${String(result.files.length).padStart(3, "0")}.${part.model.slice(-3)}`;
     result.files.push({ path, data: built.bytes });
-    const made = { path, frames: built.frames };
+    const made = { path, frames: built.frames, ...(built.lengths ? { lengths: built.lengths } : {}) };
     variants.set(key, made);
     return made;
   };
@@ -129,6 +133,35 @@ export async function populateMap(bytes: Uint8Array, vfs: VirtualFileSystem): Pr
   for (const { index, resolution } of wanted) {
     const original = entities[index]!;
     const name = original.get("classname")!;
+    if (resolution.actor) {
+      const made = [];
+      for (const part of resolution.parts) {
+        const one = await variant(part, resolution, true);
+        if (one) made.push(one);
+      }
+      // The engine drives all three parts with one frame number.
+      const [head, body, legs] = made;
+      const ranges = head?.lengths?.join(" ");
+      if (head && body && legs && ranges && made.every((m) => m.lengths?.join(" ") === ranges)) {
+        const entity: Entity = new Map([
+          ["classname", "kpweb_cast"], ["model", head.path],
+          ["message", `${body.path} ${legs.path} ${ranges}`],
+        ]);
+        for (const key of ["origin", "angle", "angles", "health", "target", "targetname"]) {
+          const value = original.get(key);
+          if (value !== undefined) entity.set(key, value);
+        }
+        // Scripted paths belong to cutscenes, which are not implemented.
+        const target = entity.get("target");
+        if (target !== undefined && entities.some((e) => e.get("targetname") === target && e.has("scriptname"))) {
+          entity.delete("target");
+        }
+        result.placed.character++;
+        replacements.set(index, [entity]);
+        continue;
+      }
+      problems.add(`${name}: animations unusable; shown as scenery`);
+    }
     const parts = [];
     for (const part of resolution.parts) {
       const made = await variant(part, resolution);

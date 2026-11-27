@@ -1,0 +1,75 @@
+--- a/src/common/header/shared.h
++++ b/src/common/header/shared.h
+@@ -607,6 +607,12 @@
+ 	PM_FREEZE
+ } pmtype_t;
+ 
++/* Standing player size. The top of the box follows info_player_start in the
++ * Kingpin entity definitions. The eye height is provisional: see
++ * docs/compatibility/player-physics.md. */
++#define KP_STAND_MAXZ 48
++#define KP_STAND_VIEWHEIGHT 40
++
+ /* pmove->pm_flags */
+ #define PMF_DUCKED 1
+ #define PMF_JUMP_HELD 2
+--- a/src/common/pmove.c
++++ b/src/common/pmove.c
+@@ -934,7 +934,7 @@
+ 	vec3_t end;
+ 	trace_t trace;
+ 
+-	pm->viewheight = 22;
++	pm->viewheight = KP_STAND_VIEWHEIGHT;
+ 
+ 	/* friction */
+ 	speed = VectorLength(pml.velocity);
+@@ -1065,7 +1065,7 @@
+ 		if (pm->s.pm_flags & PMF_DUCKED)
+ 		{
+ 			/* try to stand up */
+-			pm->maxs[2] = 32;
++			pm->maxs[2] = KP_STAND_MAXZ;
+ 			trace = pm->trace(pml.origin, pm->mins, pm->maxs, pml.origin);
+ 
+ 			if (!trace.allsolid)
+@@ -1082,8 +1082,8 @@
+ 	}
+ 	else
+ 	{
+-		pm->maxs[2] = 32;
+-		pm->viewheight = 22;
++		pm->maxs[2] = KP_STAND_MAXZ;
++		pm->viewheight = KP_STAND_VIEWHEIGHT;
+ 	}
+ }
+ 
+@@ -1280,7 +1280,7 @@
+ 		if ((pm->s.pm_flags & PMF_DUCKED) != 0)
+ 			pm->viewheight = -2;
+ 		else
+-			pm->viewheight = 22;
++			pm->viewheight = KP_STAND_VIEWHEIGHT;
+ 	}
+ }
+ 
+--- a/src/game/player/client.c
++++ b/src/game/player/client.c
+@@ -1535,7 +1535,7 @@
+ 	}
+ 
+ 	vec3_t mins = {-16, -16, -24};
+-	vec3_t maxs = {16, 16, 32};
++	vec3_t maxs = {16, 16, KP_STAND_MAXZ};
+ 	int index;
+ 	vec3_t spawn_origin, spawn_angles;
+ 	gclient_t *client;
+@@ -1601,7 +1601,7 @@
+ 	ent->client = &game.clients[index];
+ 	ent->takedamage = DAMAGE_AIM;
+ 	ent->movetype = MOVETYPE_WALK;
+-	ent->viewheight = 22;
++	ent->viewheight = KP_STAND_VIEWHEIGHT;
+ 	ent->inuse = true;
+ 	ent->classname = "player";
+ 	ent->mass = 200;

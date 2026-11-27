@@ -16,6 +16,11 @@ export interface VariantOptions {
   skin?: string;
   /** Keep the leading run of frames that share frame 0's name, instead of frame 0 only. */
   animate?: boolean;
+  /**
+   * Keep these named animations, concatenated in order, instead. Each slot lists
+   * acceptable names; the first present is used. Overrides `animate`.
+   */
+  sequences?: readonly (readonly string[])[];
   /** Uniform scale about the point 24 units below the origin. */
   scale?: number;
 }
@@ -25,6 +30,8 @@ export interface Variant {
   /** Skin paths in the form the engine loads. */
   skins: string[];
   frames: number;
+  /** Length of each requested sequence. */
+  lengths?: number[];
 }
 
 /** Lower-case, forward slashes, no leading slash: the engine's filesystem is case-sensitive. */
@@ -33,6 +40,16 @@ export function normalizeAssetPath(path: string): string {
 }
 
 const animationName = (frame: string) => frame.toLowerCase().replace(/_?\d+$/, "");
+
+/** Source frame indices of the first unbroken run with this animation name. */
+function run(frames: readonly string[], name: string): number[] {
+  const found: number[] = [];
+  for (let i = 0; i < frames.length && found.length < MAX_IDLE_FRAMES; i++) {
+    if (animationName(frames[i]!) === name) found.push(i);
+    else if (found.length) break;
+  }
+  return found;
+}
 
 /** Returns null for a model that cannot be derived safely. */
 export function buildModelVariant(source: Uint8Array, options: VariantOptions = {}): Variant | null {
@@ -43,18 +60,29 @@ export function buildModelVariant(source: Uint8Array, options: VariantOptions = 
   const h = model.header;
   const view = new View(source);
   const frameSize = h.frameSize!;
-  let count = 1;
-  if (options.animate) {
-    const first = animationName(model.frames[0]!);
-    while (count < Math.min(model.frames.length, MAX_IDLE_FRAMES) && animationName(model.frames[count]!) === first) count++;
+  let kept = [0];
+  let lengths: number[] | undefined;
+  if (options.sequences) {
+    const runs = options.sequences.map((names) => names.map((n) => run(model.frames, n)).find((r) => r.length) ?? []);
+    if (runs.some((r) => !r.length)) return null;
+    kept = runs.flat();
+    lengths = runs.map((r) => r.length);
+  } else if (options.animate) {
+    kept = run(model.frames, animationName(model.frames[0]!));
   }
+  const count = kept.length;
   const skins = (options.skin ? [options.skin] : model.skins).map(normalizeAssetPath).slice(0, 32);
   if (!skins.length || skins.some((s) => !s || s.length >= SKIN_SIZE || s.split("/").includes(".."))) return null;
 
   const skinBytes = new Uint8Array(skins.length * SKIN_SIZE);
   skins.forEach((skin, i) => skinBytes.set(new TextEncoder().encode(skin), i * SKIN_SIZE));
   // A copy, never a view: scaling writes into it (Node Buffer.slice would alias).
-  const frames = new Uint8Array(source.subarray(h.offsetFrames!, h.offsetFrames! + count * frameSize));
+  if (frameSize < FRAME_HEADER || !view.has(h.offsetFrames!, model.frames.length * frameSize)) return null;
+  const frames = new Uint8Array(count * frameSize);
+  kept.forEach((index, i) => {
+    const at = h.offsetFrames! + index * frameSize;
+    frames.set(source.subarray(at, at + frameSize), i * frameSize);
+  });
   const scale = options.scale ?? 1;
   if (scale !== 1) {
     const data = new DataView(frames.buffer);
@@ -67,7 +95,6 @@ export function buildModelVariant(source: Uint8Array, options: VariantOptions = 
       }
     }
   }
-  if (frames.length !== count * frameSize || frameSize < FRAME_HEADER) return null;
   const section = (offset: number, length: number) =>
     view.has(offset, length) ? source.subarray(offset, offset + length) : null;
   const commands = section(h.offsetGlCommands!, h.numGlCommands! * 4);
@@ -111,5 +138,5 @@ export function buildModelVariant(source: Uint8Array, options: VariantOptions = 
   const data = new DataView(out.buffer);
   header.forEach((value, i) => data.setInt32(4 + i * 4, value, true));
   parts.forEach((part, i) => out.set(part, offsets[i]!));
-  return { bytes: out, skins, frames: count };
+  return { bytes: out, skins, frames: count, ...(lengths ? { lengths } : {}) };
 }

@@ -24,6 +24,8 @@ export interface Resolution {
   drop?: "cast" | "item";
   /** Cycle the leading idle animation. */
   animate?: boolean;
+  /** A character the engine drives: solid, mortal and able to walk a path. */
+  actor?: boolean;
   scale: number;
 }
 
@@ -236,6 +238,9 @@ const CASTS: Record<string, Cast> = {
  */
 const HEAD_MODELS = ["head", "bald_head", "pony_head", "weld_head"];
 
+/** Characters driven by the engine so far; the others are static scenery. */
+const ACTORS = new Set(["cast_thug", "cast_punk"]);
+
 /** Spawn flag TRIGGERED_START: the character is absent until triggered. */
 const TRIGGERED_START = 2;
 
@@ -254,6 +259,7 @@ function resolveCast(name: string, cast: Cast, entity: Entity, flags: number, sc
   };
   return {
     kind: "character", evidence: name === "cast_thug_sit" ? "assets" : "definition", drop: "cast", animate: true, scale,
+    ...(ACTORS.has(name) ? { actor: true } : {}),
     parts: [part(head, "head", 0), part("body", "body", 1), part("legs", "legs", 2)],
   };
 }

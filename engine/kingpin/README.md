@@ -1,3 +1,6 @@
 # Kingpin compatibility layer (C/C++)
 
-Empty until sprint 4. New Kingpin source files belong here, not in upstream code.
+New Kingpin source files belong here, not in upstream code. The "kingpin" build flavour copies this directory to
+`src/game/kingpin/`.
+
+- `kp_cast.c`: solid, mortal characters that walk paths.

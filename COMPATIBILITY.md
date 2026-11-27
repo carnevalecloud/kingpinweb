@@ -6,8 +6,9 @@ Per-map and per-entity tables: [maps](docs/compatibility/maps.md), [entities](do
 ## Models in the experimental engine
 
 When a map is started, the page rewrites its entity list in memory and packs the needed models into an extra
-archive; the player's files are unchanged. Props, light fixtures, characters and pickups appear as static scenery:
-not solid, no AI, no behaviour. Characters cycle one idle animation. Details and gaps:
+archive; the player's files are unchanged. Props, light fixtures, pickups and most characters appear as static scenery:
+not solid, no behaviour, cycling one idle animation. Standing thugs and punks are solid, can be killed and can walk
+a path, but never attack (not yet checked in game). Details and gaps:
 [entity models](docs/compatibility/entity-models.md). Model lighting is Quake II's point sample of the lightmap.
 Only sr1 has been toured by automated viewpoints.
 
