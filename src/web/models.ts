@@ -77,7 +77,7 @@ if (new URLSearchParams(location.search).has("runtime")) {
       const files: PreviewFile[]=[];
       const add=(name:string,data:Uint8Array)=>files.push({target:`${ENGINE_GAME_DIR}/${name}`,file:{data}});
       // Original generated room with a single static model. Never persist model payloads.
-      const entity=`{ "classname" "kpweb_static_model" "model" "${path}" "origin" "128 0 48" "skin" "${Number(skin.value)||0}" }`;
+      const entity=`{ "classname" "kpweb_static_model" "model" "${path}" "origin" "128 0 48" "style" "${Number(skin.value)||0}" }`;
       for(const f of syntheticGameFiles()) add(f.name,f.name.endsWith(".bsp")?buildRoomBsp({extraEntities:entity}):f.data);
       const modelFile=fs.find(path)!;
       add(path,await modelFile.source.read(0,modelFile.source.size));
