@@ -32,7 +32,9 @@ taken from evidence and have collision tests; masked, translucent and sky surfac
 - Disable the incompatible Quake II status bar during walkthrough (patch implemented, unverified); replace it with a Kingpin HUD later
 - Opt-in 54-map runtime test matrix defined for both flavours; execution pending
 
-### Sprint 5: Models and props
+### Sprint 5: Models and props (prioritized ahead of physics tuning)
+- Rendering-oriented TypeScript MDX decoder implemented; synthetic test execution pending.
+- Native WASM renderer integration, skin loading and in-world props remain pending.
 Accept when: MDX and MD2 render with skins and animation, checked against synthetic fixtures and real files;
 static props (starting with `junior`) appear. Resolve MDX files exceeding the documented 512 frames.
 
