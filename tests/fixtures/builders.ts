@@ -375,7 +375,7 @@ export function syntheticMdxPropFiles(): { name: string; data: Uint8Array }[] {
   const frame = view.getInt32(15 * 4, true);
   for (let axis = 0; axis < 3; axis++) view.setFloat32(frame + axis * 4, 0.25, true);
   view.setFloat32(frame + 16, -32, true);
-  model.set([0,0,0,0, 0,0,255,0, 0,255,0,0], frame + 40);
+  model.set([0,0,0,0, 0,255,0,0, 0,0,255,0], frame + 40);
   const files = syntheticGameFiles().map(file => file.name.endsWith(".bsp") ? {
     ...file, data: buildRoomBsp({extraEntities: '{ "classname" "kpweb_static_model" "model" "models/kpweb/prop.mdx" "origin" "96 0 16" }'})
   } : file);
