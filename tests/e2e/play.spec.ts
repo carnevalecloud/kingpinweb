@@ -90,6 +90,8 @@ test("experimental WebGL engine draws a textured MDX prop", async ({ page }, inf
   page.on("pageerror", e => errors.push(e.message));
   try {
   await startRoom(page);
+  await expect.poll(() => logs.some(line => line.includes('KP static model: models/kpweb/prop.mdx')), {timeout: 15000, message: 'native game module must spawn test entity'}).toBe(true);
+  await expect.poll(() => logs.some(line => line.includes('KP MDX loaded: models/kpweb/prop.mdx')), {timeout: 15000, message: 'native renderer must load MDX'}).toBe(true);
   await expect.poll(async () => {
     const png = (await page.locator("#canvas").screenshot()).toString("base64");
     return page.evaluate(async data => {
