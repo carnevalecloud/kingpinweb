@@ -61,3 +61,15 @@ export function populateMapProps(bytes:Uint8Array,vfs:VirtualFileSystem):PropRes
   header.setInt32(8,bytes.length,true);header.setInt32(12,data.length,true);
   return {bytes:out,placed,unresolved,models:[...used]};
 }
+
+/** Single-entry PACK archive generated locally for the selected map override. */
+export function buildPropPak(path:string,bytes:Uint8Array):Uint8Array {
+  if(!/^maps\/[a-z0-9_-]+\.bsp$/.test(path)||path.length>=56)throw new Error("Invalid map path");
+  const dir=12+bytes.length;
+  const out=new Uint8Array(dir+64);
+  const view=new DataView(out.buffer);
+  out.set([80,65,67,75]);view.setInt32(4,dir,true);view.setInt32(8,64,true);
+  out.set(bytes,12);out.set(new TextEncoder().encode(path),dir);
+  view.setInt32(dir+56,12,true);view.setInt32(dir+60,bytes.length,true);
+  return out;
+}
