@@ -214,7 +214,8 @@ describe("map population", () => {
       '{"classname" "cast_thug" "origin" "1 1 1" "target" "a" "health" "80"}' +
       '{"classname" "cast_thug" "origin" "2 2 2" "target" "b"}' +
       '{"classname" "path_corner_cast" "targetname" "a"}' +
-      '{"classname" "path_corner_cast" "targetname" "b" "scriptname" "s"}',
+      '{"classname" "path_corner_cast" "targetname" "b" "target" "c"}' +
+      '{"classname" "path_corner_cast" "targetname" "c" "target" "b" "scriptname" "s"}',
     ), animated);
     expect(result.placed.character).toBe(2);
     const casts = entitiesOf(result.bytes).filter((e) => e.get("classname") === "kpweb_cast");

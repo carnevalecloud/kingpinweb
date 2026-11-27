@@ -167,12 +167,18 @@ start.addEventListener("click", async () => {
     }
     files.push(...generated);
     status.textContent = `Loaded ${files.length} files (${megabytes(bytes)}). Starting ${mapSelect.value}…`;
-    $("#setup").hidden = true;
+    $("#setup").hidden = status.hidden = true;
+    document.body.classList.add("playing");
+    // The log button stays out of the way while the mouse is captured.
+    document.addEventListener("pointerlockchange", () =>
+      document.body.classList.toggle("captured", !!document.pointerLockElement));
     const canvas = $<HTMLCanvasElement>("#canvas");
     canvas.hidden = $("#console").hidden = false;
-    startEngine({ canvas, files, log, flavour: engineSelect.value === "kingpin" ? "kingpin" : "upstream", args: ["+set", "vid_renderer", "gles3", "+map", mapSelect.value] });
+    startEngine({ canvas, files, log, fillViewport: true, flavour: engineSelect.value === "kingpin" ? "kingpin" : "upstream", args: ["+set", "vid_renderer", "gles3", "+map", mapSelect.value] });
     canvas.focus();
   } catch (error) {
+    document.body.classList.remove("playing");
+    status.hidden = false;
     status.textContent = `Failed to start: ${message(error)}. Reload the page to try again.`;
   }
 });

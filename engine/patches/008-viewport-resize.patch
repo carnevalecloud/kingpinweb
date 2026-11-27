@@ -1,0 +1,25 @@
+--- a/src/client/vid/vid.c
++++ b/src/client/vid/vid.c
+@@ -899,3 +899,22 @@
+ 
+ 	return false;
+ }
++
++#ifdef __EMSCRIPTEN__
++#include <emscripten.h>
++
++/* Called by the page when its viewport changes size. */
++EMSCRIPTEN_KEEPALIVE void
++kpweb_resize(int width, int height)
++{
++	if (width < 320 || height < 200)
++	{
++		return;
++	}
++
++	Cvar_SetValue("r_mode", -1);
++	Cvar_SetValue("r_customwidth", width);
++	Cvar_SetValue("r_customheight", height);
++	Cbuf_AddText("vid_restart\n");
++}
++#endif

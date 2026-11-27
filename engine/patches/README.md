@@ -15,3 +15,5 @@ loopback message limits so dozens of models fit in view; and adds an optional vi
 
 007 adds `kpweb_cast` and `path_corner_cast`. The build copies `engine/kingpin/` into the game sources, and
 `g_spawn.c` includes `kp_cast.c` from there.
+
+008 exports `kpweb_resize` so the page can change the rendering size when the browser window changes.

@@ -13,7 +13,7 @@ export const STATIC_FLAGS = { dropCast: 1, mapLit: 2, animate: 4, dropItem: 8 } 
 /** Protocol limit on model indices, and the share left to the game module. */
 const MAX_MODELS = 256;
 /** Frame names for idle, walk, pain and death, in the order kpweb_cast expects. */
-const ACTOR_SEQUENCES = [["amb_stand", "stand"], ["walk_guns_dn"], ["pain_chest"], ["death1"]];
+const ACTOR_SEQUENCES = [["amb_stand", "stand"], ["walk_guns_dn", "walk_gdown"], ["pain_chest"], ["death1"]];
 const RESERVED_MODELS = 48;
 /** The engine's limit on entity text (MAX_MAP_ENTSTRING). */
 const MAX_ENTITY_TEXT = 0x40000;
@@ -40,6 +40,24 @@ export interface MapModels {
 }
 
 const count = (record: Record<string, number>, key: string) => (record[key] = (record[key] ?? 0) + 1);
+
+/** Whether any node reachable along a path calls a script. */
+function isScriptedPath(entities: readonly Entity[], start: string | undefined): boolean {
+  const pending = start === undefined ? [] : [start];
+  const visited = new Set(pending);
+  for (const name of pending) {
+    for (const node of entities) {
+      if (node.get("targetname") !== name) continue;
+      if (node.has("scriptname")) return true;
+      const next = node.get("target");
+      if (next !== undefined && !visited.has(next)) {
+        visited.add(next);
+        pending.push(next);
+      }
+    }
+  }
+  return false;
+}
 
 export async function populateMap(bytes: Uint8Array, vfs: VirtualFileSystem): Promise<MapModels> {
   const result: MapModels = {
@@ -152,10 +170,7 @@ export async function populateMap(bytes: Uint8Array, vfs: VirtualFileSystem): Pr
           if (value !== undefined) entity.set(key, value);
         }
         // Scripted paths belong to cutscenes, which are not implemented.
-        const target = entity.get("target");
-        if (target !== undefined && entities.some((e) => e.get("targetname") === target && e.has("scriptname"))) {
-          entity.delete("target");
-        }
+        if (isScriptedPath(entities, entity.get("target"))) entity.delete("target");
         result.placed.character++;
         replacements.set(index, [entity]);
         continue;

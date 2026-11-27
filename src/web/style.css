@@ -10,3 +10,12 @@ summary { cursor: pointer; overflow-wrap: anywhere; }
 canvas { display: block; margin: 0 auto; max-width: 100%; max-height: 90vh; object-fit: contain; background: #000; outline: none; }
 canvas[hidden] { display: none; }
 #console { max-width: 56rem; margin: 0 auto; padding: 8px 16px; }
+
+/* A running map fills the window; the engine log floats above it. */
+body.playing { overflow: hidden; background: #000; }
+body.playing main { margin: 0; padding: 0; max-width: none; }
+body.playing #canvas { position: fixed; inset: 0; margin: 0; width: 100vw !important; height: 100vh !important; height: 100dvh !important; max-width: none; max-height: none; object-fit: contain; }
+body.playing #console { position: fixed; right: 8px; bottom: 8px; max-width: min(56rem, calc(100vw - 16px)); margin: 0; padding: 2px 8px; font-size: 13px; background: rgb(0 0 0 / 70%); opacity: .6; }
+body.playing #console[open] { opacity: 1; }
+body.playing #console pre { max-height: 60vh; margin: 4px 0; }
+body.captured #console { display: none; }

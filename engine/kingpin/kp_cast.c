@@ -96,6 +96,7 @@ KP_CastThink(edict_t *self)
 		if (VectorLength(toward) <= KP_ARRIVE_DISTANCE)
 		{
 			self->monsterinfo.pausetime = level.time + self->movetarget->wait;
+			gi.dprintf("KP cast reached %s\n", self->movetarget->targetname);
 			KP_SetNode(self, self->movetarget->target);
 		}
 	}
