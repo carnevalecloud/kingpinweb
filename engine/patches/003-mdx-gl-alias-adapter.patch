@@ -1,0 +1,129 @@
+diff --git a/src/client/refresh/files/models.c b/src/client/refresh/files/models.c
+--- a/src/client/refresh/files/models.c
++++ b/src/client/refresh/files/models.c
+@@ -27,1 +27,101 @@
+ #include "../ref_shared.h"
++/* MDX v4 adapter for the GL alias renderer. Format: docs/formats/models.md.
++ * The MD2 triangle/ST table is not used by GL; populate valid vertex indices
++ * from the command stream nonetheless. Sub-object visibility and SFX are deferred. */
++static unsigned int
++KP_Read32(const byte *p)
++{
++	return (unsigned int)p[0] | ((unsigned int)p[1] << 8) |
++		((unsigned int)p[2] << 16) | ((unsigned int)p[3] << 24);
++}
++
++static void
++KP_Write32(byte *p, unsigned int n)
++{
++	p[0] = n; p[1] = n >> 8; p[2] = n >> 16; p[3] = n >> 24;
++}
++
++static int
++KP_Range(unsigned int off, unsigned int len, unsigned int end)
++{
++	return off >= 92 && off <= end && len <= end - off;
++}
++
++static byte *
++KP_ConvertMDX(const byte *in, int length, int *outlen)
++{
++	unsigned int h[23], m[17], i, j, at, dst, n, triangles = 0, words = 0;
++	unsigned int end, framebytes, skinbytes, cmdbytes, total;
++	byte *out;
++	if (length < 92) return NULL;
++	for (i = 0; i < 23; i++) h[i] = KP_Read32(in + i * 4);
++	if (h[0] != 0x58504449 || h[1] != 4) return NULL;
++	end = h[22];
++	if (end < 92 || end > (unsigned int)length || !h[2] || h[2] > 4096 ||
++		!h[3] || h[3] > MAX_LBM_HEIGHT || h[5] > MAX_MD2SKINS ||
++		!h[6] || h[6] > MAX_VERTS || !h[9] || h[9] > 4096 ||
++		!h[12] || h[4] != 40 + 4*h[6] || h[8] > 1048576) return NULL;
++	framebytes = h[4]*h[9]; skinbytes = 64*h[5]; cmdbytes = 4*h[8];
++	if (!KP_Range(h[13], skinbytes, end) || !KP_Range(h[15], framebytes, end) ||
++		!KP_Range(h[16], cmdbytes, end)) return NULL;
++	for (i = 0; i < h[5]; i++)
++		if (!memchr(in+h[13]+64*i, 0, 64)) return NULL;
++	for (i = 0; i < h[9]; i++) {
++		const byte *f = in + h[15] + i*h[4];
++		for (j = 0; j < 6; j++)
++			if ((KP_Read32(f+j*4)&0x7f800000u)==0x7f800000u) return NULL;
++		for (j = 0; j < h[6]; j++) if (f[40+j*4+3] >= 162) return NULL;
++	}
++	at = 0;
++	while (at < h[8]) {
++		unsigned int raw = KP_Read32(in+h[16]+4*at++);
++		if (!raw) { words++; break; }
++		n = raw & 0x80000000u ? 0u-raw : raw;
++		if (n < 3 || at >= h[8] || n > (h[8]-at-1)/3) return NULL;
++		if (KP_Read32(in+h[16]+4*at++) >= h[12]) return NULL;
++		if (n-2 > 4096-triangles) return NULL;
++		triangles += n-2; words += 1+3*n;
++		for (j = 0; j < n; j++, at += 3) {
++			const byte *p = in+h[16]+4*at;
++			if (KP_Read32(p+8) >= h[6] ||
++				(KP_Read32(p)&0x7f800000u)==0x7f800000u ||
++				(KP_Read32(p+4)&0x7f800000u)==0x7f800000u) return NULL;
++		}
++	}
++	if (!at || KP_Read32(in+h[16]+4*(at-1)) != 0 || !triangles) return NULL;
++	/* MD2 header, skins, one dummy ST, triangle table, frames, GL commands. */
++	m[0]=IDALIASHEADER; m[1]=ALIAS_VERSION; m[2]=h[2]; m[3]=h[3];
++	m[4]=h[4]; m[5]=h[5]; m[6]=h[6]; m[7]=1; m[8]=triangles;
++	m[9]=words; m[10]=h[9]; m[11]=68; m[12]=68+skinbytes;
++	m[13]=m[12]+4; m[14]=m[13]+12*triangles;
++	m[15]=m[14]+framebytes; total=m[16]=m[15]+4*words;
++	out=calloc(1,total);
++	if (!out) return NULL;
++	for (i=0;i<17;i++) KP_Write32(out+4*i,m[i]);
++	memcpy(out+m[11],in+h[13],skinbytes);
++	memcpy(out+m[14],in+h[15],framebytes);
++	at=dst=triangles=0;
++	while (at<h[8]) {
++		unsigned int raw=KP_Read32(in+h[16]+4*at++);
++		KP_Write32(out+m[15]+4*dst++,raw);
++		if (!raw) break;
++		n=raw&0x80000000u ? 0u-raw : raw;
++		at++;
++		memcpy(out+m[15]+4*dst,in+h[16]+4*at,12*n);
++		for (j=2;j<n;j++) {
++			unsigned int k, ids[3], v;
++			byte *t=out+m[13]+12*triangles++;
++			ids[0]=(raw&0x80000000u)?0:((j&1)?j-1:j-2);
++			ids[1]=(raw&0x80000000u)?j-1:((j&1)?j-2:j-1);
++			ids[2]=j;
++			for(k=0;k<3;k++) {
++				v=KP_Read32(in+h[16]+4*(at+3*ids[k]+2));
++				t[2*k]=v; t[2*k+1]=v>>8;
++			}
++		}
++		at+=3*n; dst+=3*n;
++	}
++	*outlen=(int)total;
++	return out;
++}
++
+@@ -48,1 +148,11 @@
++	if (modfilelen >= 4 && KP_Read32((const byte *)buffer) == 0x58504449)
++	{
++		int converted_len;
++		byte *converted = KP_ConvertMDX(buffer, modfilelen, &converted_len);
++		void *result;
++		if (!converted) { Com_Printf("Invalid MDX: %s\n", mod_name); return NULL; }
++		result = Mod_LoadMD2(mod_name, converted, converted_len, mins, maxs, skins, find_image, type);
++		free(converted);
++		return result;
++	}
+ 	pinmodel = (dmdl_t *)buffer;
+diff --git a/src/client/refresh/gl3/gl3_model.c b/src/client/refresh/gl3/gl3_model.c
+--- a/src/client/refresh/gl3/gl3_model.c
++++ b/src/client/refresh/gl3/gl3_model.c
+@@ -694,1 +694,2 @@
++		case 0x58504449: /* Kingpin IDPX */
+ 		case IDALIASHEADER:
+diff --git a/src/client/refresh/gl1/gl1_model.c b/src/client/refresh/gl1/gl1_model.c
+--- a/src/client/refresh/gl1/gl1_model.c
++++ b/src/client/refresh/gl1/gl1_model.c
+@@ -212,1 +212,2 @@
++		case 0x58504449: /* Kingpin IDPX */
+ 		case IDALIASHEADER:

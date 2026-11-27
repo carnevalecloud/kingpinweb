@@ -57,6 +57,8 @@ export interface BspDetails extends Record<string, unknown> {
   entityCount: number;
   classnames: { name: string; count: number; upstream: boolean }[];
   entityKeys: string[];
+  /** Explicit model references only; never infer paths from classnames. */
+  entityModels: { classname: string; model: string; count: number }[];
   textures: string[];
   /** Histogram of individual surface flag bits, keyed "0x…". */
   surfaceFlags: Record<string, number>;
@@ -115,9 +117,17 @@ export function inspectBsp(bytes: Uint8Array, diag: Diagnostics): BspDetails | n
 
   const classCounts = new Map<string, number>();
   const keys = new Set<string>();
+  const modelRefs = new Map<string, { classname: string; model: string; count: number }>();
   for (const entity of entities) {
     for (const key of entity.keys()) keys.add(key);
     const name = entity.get("classname");
+    const model = entity.get("model")?.replaceAll("\\", "/").toLowerCase();
+    if (name && model && /^models\/[a-z0-9_./-]+\.(mdx|md2)$/.test(model) && !model.split("/").includes("..")) {
+      const key = JSON.stringify([name, model]);
+      const existing = modelRefs.get(key);
+      if (existing) existing.count++;
+      else modelRefs.set(key, { classname: name, model, count: 1 });
+    }
     if (name === undefined) diag.warn("bsp.entity-without-classname", "an entity has no classname");
     else classCounts.set(name, (classCounts.get(name) ?? 0) + 1);
   }
@@ -171,6 +181,7 @@ export function inspectBsp(bytes: Uint8Array, diag: Diagnostics): BspDetails | n
     entityCount: entities.length,
     classnames,
     entityKeys: [...keys].sort(),
+    entityModels: [...modelRefs.values()].sort((a,b) => a.classname.localeCompare(b.classname) || a.model.localeCompare(b.model)),
     textures: [...textures].sort(),
     surfaceFlags,
     worldBounds,
