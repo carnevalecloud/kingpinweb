@@ -12,7 +12,7 @@ export default defineConfig({
     outDir: resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
     rolldownOptions: {
-      input: { main: page("index.html"), inspector: page("inspector.html"), play: page("play.html") },
+      input: { main: page("index.html"), inspector: page("inspector.html"), play: page("play.html"), models: page("models.html") },
     },
   },
   server: {

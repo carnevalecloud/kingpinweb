@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Model browser | KINGPIN//WEB</title><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./models.css"></head>
+<body>
+<main id="browser">
+<p><a href="./index.html">← KINGPIN//WEB</a></p>
+<h1>Model browser</h1>
+<p>Browse your local Kingpin models and open a native engine preview. No game files are uploaded.</p>
+<label>Game folder <input id="folder" type="file" webkitdirectory></label>
+<p id="status" role="status">Looking for remembered game files…</p>
+<div class="model-layout">
+<section><label for="filter">Search models</label><input id="filter" type="search" placeholder="e.g. trash, punk, weapon"><select id="models" size="14" aria-label="Models"></select></section>
+<section><h2 id="name">Select a model</h2><pre id="metadata"></pre><label for="skin">Skin</label> <select id="skin" disabled></select><p><button id="preview" disabled>Open native preview</button></p><p class="muted">Preview uses frame zero and original model scale. Click its canvas for mouse look; use WASD to move.</p><div id="preview-host"></div></section>
+</div>
+</main>
+<div id="runtime" hidden><canvas id="canvas" tabindex="-1"></canvas><details><summary>Engine log</summary><pre id="log"></pre></details></div>
+<script type="module" src="./models.ts"></script>
+</body></html>
