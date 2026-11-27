@@ -8,7 +8,7 @@ Per-map and per-entity tables: [maps](docs/compatibility/maps.md), [entities](do
 When a map is started, the page rewrites its entity list in memory and packs the needed models into an extra
 archive; the player's files are unchanged. Props, light fixtures, pickups and most characters appear as static scenery:
 not solid, no behaviour, cycling one idle animation. Standing thugs and punks are solid, can be killed and can walk
-a path, but never attack (checked only by one automated sr1 run). Details and gaps:
+a path. A thug that is shot fights back with its fists; punks never attack (checked only by automated sr1 runs). Details and gaps:
 [entity models](docs/compatibility/entity-models.md). Model lighting is Quake II's point sample of the lightmap.
 Only sr1 has been toured by automated viewpoints.
 

@@ -219,9 +219,22 @@ describe("map population", () => {
     ), animated);
     expect(result.placed.character).toBe(2);
     const casts = entitiesOf(result.bytes).filter((e) => e.get("classname") === "kpweb_cast");
-    expect(casts[0]!.get("message")).toMatch(/^models\/kpweb\/\d{3}\.mdx models\/kpweb\/\d{3}\.mdx 1 1 1 2$/);
+    expect(casts[0]!.get("message")).toMatch(/^models\/kpweb\/\d{3}\.mdx models\/kpweb\/\d{3}\.mdx 1 1 1 2 0 0$/);
     expect([casts[0]!.get("target"), casts[0]!.get("health")]).toEqual(["a", "80"]);
     expect(casts[1]!.has("target")).toBe(false);
+  });
+
+  it("gives a thug with run and punch animations the means to fight", async () => {
+    const names = ["amb_stand_01", "walk_guns_dn_01", "pain_chest_01", "death1_01", "run_guns_dn_01", "melee1_01"];
+    const fighter = new VirtualFileSystem();
+    for (const part of ["head", "body", "legs"]) {
+      fighter.add(`models/actors/thug/${part}.mdx`, memorySource(namedMdx(names)), "fixture");
+      fighter.add(`models/actors/thug/${part}_001.tga`, memorySource(files.get(`models/actors/thug/${part}_001.tga`)!), "fixture");
+    }
+    fighter.add("models/kpweb/skin.tga", memorySource(files.get("models/kpweb/skin.tga")!), "fixture");
+    const result = await populateMap(map('{"classname" "cast_thug" "origin" "1 1 1"}'), fighter);
+    const cast = entitiesOf(result.bytes).find((e) => e.get("classname") === "kpweb_cast")!;
+    expect(cast.get("message")).toMatch(/ 1 1 1 1 1 1$/);
   });
 
   it("omits a character with a missing part and leaves other maps unchanged", async () => {

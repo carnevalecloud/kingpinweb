@@ -14,6 +14,8 @@ export const STATIC_FLAGS = { dropCast: 1, mapLit: 2, animate: 4, dropItem: 8 } 
 const MAX_MODELS = 256;
 /** Frame names for idle, walk, pain and death, in the order kpweb_cast expects. */
 const ACTOR_SEQUENCES = [["amb_stand", "stand"], ["walk_guns_dn", "walk_gdown"], ["pain_chest"], ["death1"]];
+/** Run and punch, appended for characters whose models have both. */
+const FIGHT_SEQUENCES = [["run_guns_dn", "run_gun_down"], ["melee1"]];
 const RESERVED_MODELS = 48;
 /** The engine's limit on entity text (MAX_MAP_ENTSTRING). */
 const MAX_ENTITY_TEXT = 0x40000;
@@ -110,9 +112,9 @@ export async function populateMap(bytes: Uint8Array, vfs: VirtualFileSystem): Pr
     return fallback;
   };
 
-  const variant = async (part: Part, resolution: Resolution, actor = false) => {
+  const variant = async (part: Part, resolution: Resolution, sequences?: string[][]) => {
     const skin = chooseSkin(part);
-    const key = [part.model, skin ?? "", resolution.animate ?? false, resolution.scale, actor].join("|");
+    const key = [part.model, skin ?? "", resolution.animate ?? false, resolution.scale, sequences?.length ?? 0].join("|");
     const known = variants.get(key);
     if (known !== undefined) return known;
     const file = vfs.find(part.model);
@@ -127,11 +129,11 @@ export async function populateMap(bytes: Uint8Array, vfs: VirtualFileSystem): Pr
     }
     const built = buildModelVariant(await file.source.read(0, file.source.size), {
       ...(skin ? { skin } : {}), animate: resolution.animate ?? false, scale: resolution.scale,
-      ...(actor ? { sequences: ACTOR_SEQUENCES } : {}),
+      ...(sequences ? { sequences } : {}),
     });
     if (!built) {
       // The caller reports a character that cannot be animated.
-      if (!actor) problems.add(`unusable model ${part.model}`);
+      if (!sequences) problems.add(`unusable model ${part.model}`);
       variants.set(key, null);
       return null;
     }
@@ -147,23 +149,36 @@ export async function populateMap(bytes: Uint8Array, vfs: VirtualFileSystem): Pr
     return made;
   };
 
+  /** The three animated parts of a character, if they all have these sequences. */
+  const actorParts = async (resolution: Resolution, sequences: string[][]) => {
+    const made = [];
+    for (const part of resolution.parts) {
+      const one = await variant(part, resolution, sequences);
+      if (!one) return;
+      made.push(one);
+    }
+    // The engine drives all three parts with one frame number.
+    const [head, body, legs] = made;
+    const ranges = head?.lengths?.join(" ");
+    if (!head || !body || !legs || !ranges || made.some((m) => m.lengths?.join(" ") !== ranges)) return;
+    return { head, body, legs, ranges };
+  };
+
   const replacements = new Map<number, Entity[]>();
   for (const { index, resolution } of wanted) {
     const original = entities[index]!;
     const name = original.get("classname")!;
     if (resolution.actor) {
-      const made = [];
-      for (const part of resolution.parts) {
-        const one = await variant(part, resolution, true);
-        if (one) made.push(one);
+      let actor = await actorParts(resolution, [...ACTOR_SEQUENCES, ...FIGHT_SEQUENCES]);
+      let ranges = actor?.ranges;
+      if (!actor) {
+        actor = await actorParts(resolution, ACTOR_SEQUENCES);
+        ranges = actor && `${actor.ranges} 0 0`;
       }
-      // The engine drives all three parts with one frame number.
-      const [head, body, legs] = made;
-      const ranges = head?.lengths?.join(" ");
-      if (head && body && legs && ranges && made.every((m) => m.lengths?.join(" ") === ranges)) {
+      if (actor) {
         const entity: Entity = new Map([
-          ["classname", "kpweb_cast"], ["model", head.path],
-          ["message", `${body.path} ${legs.path} ${ranges}`],
+          ["classname", "kpweb_cast"], ["model", actor.head.path],
+          ["message", `${actor.body.path} ${actor.legs.path} ${ranges}`],
         ]);
         for (const key of ["origin", "angle", "angles", "health", "target", "targetname"]) {
           const value = original.get(key);

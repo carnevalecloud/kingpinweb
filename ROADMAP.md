@@ -44,6 +44,8 @@ taken from evidence and have collision tests; masked, translucent and sky surfac
 - [ ] Thugs and punks are solid, take damage, die and walk unscripted paths. Accept when a person has seen, in sr1,
   a thug block them, flinch and die when shot, and the punk walking its loop. An automated sr1 run saw a thug die and
   the punk pass path nodes; no person has checked yet
+- [ ] A shot thug chases the player and punches. Accept when a person has seen it happen in sr1 and the player can
+  lose and win the fight
 - [ ] Solid props and other characters; pickup behaviour
 
 Evidence and inferred rules: [entity models](docs/compatibility/entity-models.md).

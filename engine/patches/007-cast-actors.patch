@@ -34,7 +34,7 @@
  	/* common data blocks */
  	moveinfo_t moveinfo;
 +	/* Kingpin characters (not saved): animation lengths and the current one. */
-+	int kp_frames[4];
++	int kp_frames[6];
 +	int kp_sequence;
 +
  	monsterinfo_t monsterinfo;

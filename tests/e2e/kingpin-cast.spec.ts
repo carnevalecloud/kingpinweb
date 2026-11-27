@@ -16,7 +16,7 @@ async function command(page: Page, text: string): Promise<void> {
   await page.waitForTimeout(600);
 }
 
-test("sr1 characters walk their path and die when shot", async ({ page }) => {
+test("sr1 characters walk their path, fight back and die when shot", async ({ page }) => {
   test.skip(!existsSync(join(gameDir, "models")), "no original models in gamedata/main/models");
   test.skip(!existsSync("dist/engine/kingpin/index.js"), "experimental engine not built");
   test.setTimeout(420_000);
@@ -60,6 +60,12 @@ test("sr1 characters walk their path and die when shot", async ({ page }) => {
     await command(page, "teleport -1128 1780 30 0 90");
     await page.waitForTimeout(3000);
     await page.locator("#canvas").screenshot({ path: `${reportDir}/before.png` });
+    // One shot provokes him: he closes in and punches.
+    await command(page, "+attack");
+    await command(page, "-attack");
+    await seen("KP cast angry", 30_000);
+    await seen("KP cast punched", 60_000);
+    await page.screenshot({ path: `${reportDir}/fighting.png` });
     await command(page, "+attack");
     await seen("KP cast died", 90_000);
     await command(page, "-attack");

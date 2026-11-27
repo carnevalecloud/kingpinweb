@@ -1,5 +1,6 @@
 /*
- * Experimental Kingpin characters: solid, mortal, and able to walk a path.
+ * Experimental Kingpin characters: solid, mortal, able to walk a path and, if
+ * they have a punch animation, to fight back.
  * Included by g_spawn.c in the "kingpin" build flavour. SPDX: GPL-2.0-or-later.
  *
  * Written against the Quake II game module only. No Kingpin code is used, and
@@ -7,18 +8,27 @@
  *
  * Entities come from src/kingpin/map-props.ts:
  *   model    head model
- *   message  "<body model> <legs model> <idle> <walk> <pain> <death>", the last
- *            four being frame counts laid out consecutively in all three models
+ *   message  "<body model> <legs model> <idle> <walk> <pain> <death> <run>
+ *            <punch>", the numbers being frame counts laid out consecutively in
+ *            all three models; run and punch are 0 for characters that cannot
+ *            fight
  *   target   first path_corner_cast to walk to (optional)
  */
 
 #define KP_WALK_DISTANCE 6 /* units per server frame; provisional */
 #define KP_ARRIVE_DISTANCE 24
+#define KP_RUN_DISTANCE 14 /* units per server frame; provisional */
 #define KP_DEFAULT_HEALTH 100
+/* Reach, strength and pace of a punch; all provisional. */
+#define KP_PUNCH_REACH 64
+#define KP_PUNCH_DAMAGE 8
+#define KP_PUNCH_KICK 40
+#define KP_PUNCH_REST 0.5
+#define KP_PAIN_REST 3
 
 void M_MoveToGoal(edict_t *ent, float dist);
 
-enum { KP_IDLE, KP_WALK, KP_PAIN, KP_DEATH };
+enum { KP_IDLE, KP_WALK, KP_PAIN, KP_DEATH, KP_RUN, KP_PUNCH };
 
 static int
 KP_FirstFrame(const edict_t *self, int sequence)
@@ -56,6 +66,113 @@ KP_SetNode(edict_t *self, char *name)
 	}
 }
 
+/* Shows the next frame of a looping sequence, switching to it if needed. */
+static void
+KP_Loop(edict_t *self, int sequence)
+{
+	if (self->kp_sequence != sequence)
+	{
+		KP_SetSequence(self, sequence);
+		return;
+	}
+
+	self->s.frame = KP_FirstFrame(self, sequence) +
+		(self->s.frame - KP_FirstFrame(self, sequence) + 1) %
+		self->kp_frames[sequence];
+}
+
+static qboolean
+KP_InReach(edict_t *self, edict_t *other)
+{
+	vec3_t toward;
+
+	VectorSubtract(other->s.origin, self->s.origin, toward);
+
+	if (fabs(toward[2]) > KP_PUNCH_REACH)
+	{
+		return false;
+	}
+
+	toward[2] = 0;
+
+	return VectorLength(toward) <= KP_PUNCH_REACH && visible(self, other);
+}
+
+static void
+KP_Face(edict_t *self, edict_t *other)
+{
+	vec3_t toward;
+
+	VectorSubtract(other->s.origin, self->s.origin, toward);
+	self->ideal_yaw = vectoyaw(toward);
+	M_ChangeYaw(self);
+}
+
+/* Chases the enemy and punches when close enough. */
+static void
+KP_Fight(edict_t *self, int offset)
+{
+	edict_t *enemy = self->enemy;
+
+	if (self->kp_sequence == KP_PUNCH && offset + 1 < self->kp_frames[KP_PUNCH])
+	{
+		self->s.frame++;
+		KP_Face(self, enemy);
+
+		/* The blow lands halfway through the swing, if still within reach. */
+		if (offset + 1 == self->kp_frames[KP_PUNCH] / 2 &&
+			KP_InReach(self, enemy))
+		{
+			vec3_t direction;
+
+			VectorSubtract(enemy->s.origin, self->s.origin, direction);
+			VectorNormalize(direction);
+			T_Damage(enemy, self, self, direction, enemy->s.origin,
+					vec3_origin, KP_PUNCH_DAMAGE, KP_PUNCH_KICK, 0, MOD_HIT);
+			gi.dprintf("KP cast punched\n");
+		}
+
+		return;
+	}
+
+	if (KP_InReach(self, enemy))
+	{
+		KP_Face(self, enemy);
+
+		if (level.time >= self->monsterinfo.attack_finished)
+		{
+			KP_SetSequence(self, KP_PUNCH);
+			self->monsterinfo.attack_finished = level.time + KP_PUNCH_REST +
+				self->kp_frames[KP_PUNCH] * FRAMETIME;
+		}
+		else
+		{
+			KP_Loop(self, KP_IDLE);
+		}
+
+		return;
+	}
+
+	KP_Loop(self, KP_RUN);
+	self->goalentity = enemy;
+	M_MoveToGoal(self, KP_RUN_DISTANCE);
+}
+
+/* Starts a fight with a player who hurt this character, if it knows how. */
+static void
+KP_Provoke(edict_t *self, edict_t *attacker)
+{
+	if (!attacker || !attacker->client || (attacker->flags & FL_NOTARGET) ||
+		!self->kp_frames[KP_RUN] || !self->kp_frames[KP_PUNCH] ||
+		self->enemy == attacker)
+	{
+		return;
+	}
+
+	self->enemy = attacker;
+	gi.dprintf("KP cast angry at %s\n", vtos(self->s.origin));
+}
+
 void
 KP_CastThink(edict_t *self)
 {
@@ -86,6 +203,19 @@ KP_CastThink(edict_t *self)
 		return;
 	}
 
+	if (self->enemy)
+	{
+		if (self->enemy->inuse && self->enemy->health > 0)
+		{
+			KP_Fight(self, offset);
+			return;
+		}
+
+		/* The fight is over; go back to the path. */
+		self->enemy = NULL;
+		self->goalentity = self->movetarget;
+	}
+
 	if (self->movetarget)
 	{
 		vec3_t toward;
@@ -103,15 +233,7 @@ KP_CastThink(edict_t *self)
 
 	wanted = (self->movetarget && level.time >= self->monsterinfo.pausetime) ? KP_WALK : KP_IDLE;
 
-	if (wanted != self->kp_sequence)
-	{
-		KP_SetSequence(self, wanted);
-	}
-	else
-	{
-		self->s.frame = KP_FirstFrame(self, wanted) +
-			(offset + 1) % self->kp_frames[wanted];
-	}
+	KP_Loop(self, wanted);
 
 	if (wanted == KP_WALK)
 	{
@@ -131,15 +253,22 @@ KP_CastStart(edict_t *self)
 }
 
 void
-KP_CastPain(edict_t *self, edict_t *other /* unused */,
+KP_CastPain(edict_t *self, edict_t *other,
 		float kick /* unused */, int damage /* unused */)
 {
-	if (self->deadflag || level.time < self->pain_debounce_time)
+	if (self->deadflag)
 	{
 		return;
 	}
 
-	self->pain_debounce_time = level.time + 1;
+	KP_Provoke(self, other);
+
+	if (level.time < self->pain_debounce_time)
+	{
+		return;
+	}
+
+	self->pain_debounce_time = level.time + KP_PAIN_REST;
 	KP_SetSequence(self, KP_PAIN);
 }
 
@@ -157,7 +286,7 @@ KP_CastDie(edict_t *self, edict_t *inflictor /* unused */,
 	self->takedamage = DAMAGE_NO;
 	self->svflags |= SVF_DEADMONSTER;
 	self->maxs[2] = -8; /* the body can be walked over */
-	self->movetarget = self->goalentity = NULL;
+	self->movetarget = self->goalentity = self->enemy = NULL;
 	KP_SetSequence(self, KP_DEATH);
 	self->think = KP_CastThink;
 	self->nextthink = level.time + FRAMETIME;
@@ -172,9 +301,9 @@ SP_kpweb_cast(edict_t *self)
 	int *n = self->kp_frames;
 
 	if (deathmatch->value || !self->model || !self->message ||
-		sscanf(self->message, "%63s %63s %d %d %d %d", body, legs,
-			&n[0], &n[1], &n[2], &n[3]) != 6 ||
-		n[0] < 1 || n[1] < 1 || n[2] < 1 || n[3] < 1)
+		sscanf(self->message, "%63s %63s %d %d %d %d %d %d", body, legs,
+			&n[0], &n[1], &n[2], &n[3], &n[4], &n[5]) != 8 ||
+		n[0] < 1 || n[1] < 1 || n[2] < 1 || n[3] < 1 || n[4] < 0 || n[5] < 0)
 	{
 		gi.dprintf("KP cast: unusable entity at %s\n", vtos(self->s.origin));
 		G_FreeEdict(self);
@@ -196,7 +325,7 @@ SP_kpweb_cast(edict_t *self)
 	VectorSet(self->maxs, 16, 16, 48);
 
 	/* A "good guy" monster takes damage without starting Quake II's combat AI,
-	 * which this entity has no callbacks for. */
+	 * which this entity has no callbacks for. Fighting is handled above. */
 	self->svflags |= SVF_MONSTER;
 	self->monsterinfo.aiflags |= AI_GOOD_GUY;
 	self->takedamage = DAMAGE_AIM;
