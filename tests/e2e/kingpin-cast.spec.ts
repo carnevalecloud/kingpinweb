@@ -16,7 +16,7 @@ async function command(page: Page, text: string): Promise<void> {
   await page.waitForTimeout(600);
 }
 
-test("sr1 characters walk their path, fight back and die when shot", async ({ page }) => {
+test("sr1 characters walk, fight as a gang, die, and the player can too", async ({ page }) => {
   test.skip(!existsSync(join(gameDir, "models")), "no original models in gamedata/main/models");
   test.skip(!existsSync("dist/engine/kingpin/index.js"), "experimental engine not built");
   test.setTimeout(420_000);
@@ -55,22 +55,40 @@ test("sr1 characters walk their path, fight back and die when shot", async ({ pa
     // The punk "arnold" starts a looping path at node t24.
     await seen("KP cast reached t", 90_000);
 
-    // Face the thug "leroy" from the south and shoot until he drops.
-    await command(page, "god");
-    await command(page, "teleport -1128 1780 30 0 90");
+    const hud = page.locator("#hud");
+    await expect(hud).toHaveText("Health 100");
+
+    // South of "leroy" and his gang mate "betty": one shot angers both.
+    await command(page, "teleport -1128 1740 30 0 90");
     await page.waitForTimeout(3000);
     await page.locator("#canvas").screenshot({ path: `${reportDir}/before.png` });
-    // One shot provokes him: he closes in and punches.
     await command(page, "+attack");
     await command(page, "-attack");
-    await seen("KP cast angry", 30_000);
+    await expect.poll(() => log.filter((l) => l.startsWith("KP cast angry")).length, { timeout: 30_000 }).toBeGreaterThanOrEqual(2);
     await seen("KP cast punched", 60_000);
+    await expect(hud).not.toHaveText("Health 100");
+    await command(page, "god");
     await page.screenshot({ path: `${reportDir}/fighting.png` });
     await command(page, "+attack");
     await seen("KP cast died", 90_000);
     await command(page, "-attack");
     await page.waitForTimeout(4000);
     await page.locator("#canvas").screenshot({ path: `${reportDir}/after.png` });
+    // Dying offers a restart, which brings the map and full health back.
+    await command(page, "god");
+    await page.waitForTimeout(6000);
+    await command(page, "kill");
+    await expect(hud).toContainText("You died", { timeout: 30_000 });
+    await page.screenshot({ path: `${reportDir}/died.png` });
+    const spawned = () => log.filter((l) => l.startsWith("KP cast: ")).length;
+    const before = spawned();
+    await expect
+      .poll(async () => {
+        await page.keyboard.press("Space");
+        return spawned();
+      }, { timeout: 120_000, intervals: [3000] })
+      .toBeGreaterThan(before);
+    await expect(hud).toHaveText("Health 100", { timeout: 60_000 });
     expect(log.filter((l) => /Invalid MDX|couldn't load models|overflow|ERR_DROP|KP cast: unusable/i.test(l))).toEqual([]);
     expect(errors).toEqual([]);
   } finally {

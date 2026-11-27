@@ -36,18 +36,22 @@ icon; the `g_flamegun` models are used), `key_fuse`, the four weapon mods, `item
 
 ## Driven characters (patch 007)
 
-Standing `cast_thug` and `cast_punk` are solid, take damage, flinch, die, and walk `path_corner_cast` chains. The
-engine code is `engine/kingpin/kp_cast.c`, written against the Quake II game module. Other characters stay scenery.
+Cast members are solid, take damage and die; those with the frames also flinch, walk `path_corner_cast` chains and
+fight. The engine code is `engine/kingpin/kp_cast.c`, written against the Quake II game module.
 
-- Animations used, by frame name: `amb_stand` or `stand`, `walk_guns_dn` or `walk_gdown`, `pain_chest`, `death1`; for fighting also
-  `run_guns_dn` or `run_gun_down`, and `melee1`.
-- Walk speed (60 units per second), the pain delay and default health (100) are placeholders, not measurements.
+| Characters | Walk | Punch |
+| --- | --- | --- |
+| thug, runt, bitch, dog (bite) | yes | yes |
+| punk, shorty, whore | yes | no melee frames seen; they need weapons and shooting |
+| seated thug and bum | no | no |
+
+- Frame names used are listed in `src/kingpin/entity-registry.ts`. A character lacking run or punch frames is passive.
+- A character shot by the player attacks until one of them dies, ignoring a player using `notarget`. Members of the
+  same `cast_group` within 768 units who can see the victim or the player join in.
 - Paths with a `scriptname` on any node are ignored: they belong to cutscenes.
-- A thug shot by the player runs at them (`run_guns_dn`) and punches (`melee1`) until one of the two dies. He
-  ignores a player using `notarget`. Punks have `run_gun_down` but no melee animation in the files, so they do not
-  fight; they need weapon models and shooting.
-- Run speed, punch reach, damage and timing are placeholders. Gang reactions are absent: only the one shot responds.
-- There are no sounds, and saving is untested.
+- Walk and run speed, punch reach, damage, timing, earshot and default health (100) are placeholders, not
+  measurements. Gang behaviour is a simplification: reputation, warnings and hiring are absent.
+- Dying restarts the map. The page, not the engine, shows health. There are no sounds, and saving is untested.
 
 ## Not shown
 - Characters with spawn flag TRIGGERED_START (2), scripted `*_animate` props, riding motorcycles.

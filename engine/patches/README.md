@@ -17,3 +17,6 @@ loopback message limits so dozens of models fit in view; and adds an optional vi
 `g_spawn.c` includes `kp_cast.c` from there.
 
 008 exports `kpweb_resize` so the page can change the rendering size when the browser window changes.
+
+009 exports `kpweb_health` for the page's health display, and restarts the map when the player dies instead of
+opening the Quake II load menu.

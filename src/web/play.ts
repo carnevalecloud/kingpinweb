@@ -174,7 +174,13 @@ start.addEventListener("click", async () => {
       document.body.classList.toggle("captured", !!document.pointerLockElement));
     const canvas = $<HTMLCanvasElement>("#canvas");
     canvas.hidden = $("#console").hidden = false;
-    startEngine({ canvas, files, log, fillViewport: true, flavour: engineSelect.value === "kingpin" ? "kingpin" : "upstream", args: ["+set", "vid_renderer", "gles3", "+map", mapSelect.value] });
+    const hud = $("#hud");
+    const onHealth = (health: number) => {
+      hud.hidden = false;
+      hud.classList.toggle("dead", health <= 0);
+      hud.textContent = health > 0 ? `Health ${health}` : "You died. Click or press a key to restart the map.";
+    };
+    startEngine({ canvas, files, log, onHealth, fillViewport: true, flavour: engineSelect.value === "kingpin" ? "kingpin" : "upstream", args: ["+set", "vid_renderer", "gles3", "+map", mapSelect.value] });
     canvas.focus();
   } catch (error) {
     document.body.classList.remove("playing");

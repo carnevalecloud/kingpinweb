@@ -46,7 +46,9 @@ taken from evidence and have collision tests; masked, translucent and sky surfac
   the punk pass path nodes; no person has checked yet
 - [ ] A shot thug chases the player and punches. Accept when a person has seen it happen in sr1 and the player can
   lose and win the fight
-- [ ] Solid props and other characters; pickup behaviour
+- [ ] Health display, restart on death, all characters solid and mortal, and gangs helping each other. Accept when a
+  person has fought and lost in sr1 and seen a gang join in
+- [ ] Solid props; pickup behaviour
 
 Evidence and inferred rules: [entity models](docs/compatibility/entity-models.md).
 

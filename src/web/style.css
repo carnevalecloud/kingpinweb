@@ -19,3 +19,6 @@ body.playing #console { position: fixed; right: 8px; bottom: 8px; max-width: min
 body.playing #console[open] { opacity: 1; }
 body.playing #console pre { max-height: 60vh; margin: 4px 0; }
 body.captured #console { display: none; }
+#hud { position: fixed; left: 16px; bottom: 12px; padding: 2px 12px; font-size: 22px; font-weight: 600; background: rgb(0 0 0 / 60%); pointer-events: none; }
+#hud.dead { left: 50%; bottom: 50%; transform: translate(-50%, 50%); width: max-content; max-width: calc(100vw - 32px); color: #ff8a75; }
+#hud[hidden] { display: none; }

@@ -13,6 +13,9 @@
  *            all three models; run and punch are 0 for characters that cannot
  *            fight
  *   target   first path_corner_cast to walk to (optional)
+ *   count    gang number; members help each other (optional)
+ *   style    1 for an animal, which has a low collision box
+ * Absent parts are "-". Only the idle and death counts must be above zero.
  */
 
 #define KP_WALK_DISTANCE 6 /* units per server frame; provisional */
@@ -25,6 +28,7 @@
 #define KP_PUNCH_KICK 40
 #define KP_PUNCH_REST 0.5
 #define KP_PAIN_REST 3
+#define KP_GANG_EARSHOT 768
 
 void M_MoveToGoal(edict_t *ent, float dist);
 
@@ -173,6 +177,36 @@ KP_Provoke(edict_t *self, edict_t *attacker)
 	gi.dprintf("KP cast angry at %s\n", vtos(self->s.origin));
 }
 
+/* The victim's gang joins in, if near enough to see the victim or attacker. */
+static void
+KP_AlertGang(edict_t *victim, edict_t *attacker)
+{
+	edict_t *other = NULL;
+
+	if (!victim->count || !attacker || !attacker->client)
+	{
+		return;
+	}
+
+	while ((other = G_Find(other, FOFS(classname), "kpweb_cast")) != NULL)
+	{
+		vec3_t apart;
+
+		if (other == victim || other->deadflag || other->count != victim->count)
+		{
+			continue;
+		}
+
+		VectorSubtract(other->s.origin, victim->s.origin, apart);
+
+		if (VectorLength(apart) <= KP_GANG_EARSHOT &&
+			(visible(other, victim) || visible(other, attacker)))
+		{
+			KP_Provoke(other, attacker);
+		}
+	}
+}
+
 void
 KP_CastThink(edict_t *self)
 {
@@ -231,7 +265,8 @@ KP_CastThink(edict_t *self)
 		}
 	}
 
-	wanted = (self->movetarget && level.time >= self->monsterinfo.pausetime) ? KP_WALK : KP_IDLE;
+	wanted = (self->movetarget && self->kp_frames[KP_WALK] &&
+		level.time >= self->monsterinfo.pausetime) ? KP_WALK : KP_IDLE;
 
 	KP_Loop(self, wanted);
 
@@ -262,8 +297,9 @@ KP_CastPain(edict_t *self, edict_t *other,
 	}
 
 	KP_Provoke(self, other);
+	KP_AlertGang(self, other);
 
-	if (level.time < self->pain_debounce_time)
+	if (!self->kp_frames[KP_PAIN] || level.time < self->pain_debounce_time)
 	{
 		return;
 	}
@@ -274,7 +310,7 @@ KP_CastPain(edict_t *self, edict_t *other,
 
 void
 KP_CastDie(edict_t *self, edict_t *inflictor /* unused */,
-		edict_t *attacker /* unused */, int damage /* unused */,
+		edict_t *attacker, int damage /* unused */,
 		vec3_t point /* unused */)
 {
 	if (self->deadflag == DEAD_DEAD)
@@ -283,6 +319,7 @@ KP_CastDie(edict_t *self, edict_t *inflictor /* unused */,
 	}
 
 	self->deadflag = DEAD_DEAD;
+	KP_AlertGang(self, attacker);
 	self->takedamage = DAMAGE_NO;
 	self->svflags |= SVF_DEADMONSTER;
 	self->maxs[2] = -8; /* the body can be walked over */
@@ -303,7 +340,7 @@ SP_kpweb_cast(edict_t *self)
 	if (deathmatch->value || !self->model || !self->message ||
 		sscanf(self->message, "%63s %63s %d %d %d %d %d %d", body, legs,
 			&n[0], &n[1], &n[2], &n[3], &n[4], &n[5]) != 8 ||
-		n[0] < 1 || n[1] < 1 || n[2] < 1 || n[3] < 1 || n[4] < 0 || n[5] < 0)
+		n[0] < 1 || n[1] < 0 || n[2] < 0 || n[3] < 1 || n[4] < 0 || n[5] < 0)
 	{
 		gi.dprintf("KP cast: unusable entity at %s\n", vtos(self->s.origin));
 		G_FreeEdict(self);
@@ -311,8 +348,8 @@ SP_kpweb_cast(edict_t *self)
 	}
 
 	self->s.modelindex = gi.modelindex(self->model);
-	self->s.modelindex2 = gi.modelindex(body);
-	self->s.modelindex3 = gi.modelindex(legs);
+	self->s.modelindex2 = strcmp(body, "-") ? gi.modelindex(body) : 0;
+	self->s.modelindex3 = strcmp(legs, "-") ? gi.modelindex(legs) : 0;
 	/* Neither may reach Quake II's death handling, which prints and fires them. */
 	self->message = NULL;
 	self->combattarget = self->target;
@@ -321,8 +358,9 @@ SP_kpweb_cast(edict_t *self)
 	self->movetype = MOVETYPE_STEP;
 	self->solid = SOLID_BBOX;
 	self->clipmask = MASK_MONSTERSOLID;
-	VectorSet(self->mins, -16, -16, -24);
-	VectorSet(self->maxs, 16, 16, 48);
+	/* Boxes as in the Kingpin entity definitions. */
+	VectorSet(self->mins, -16, -16, self->style == 1 ? -16 : -24);
+	VectorSet(self->maxs, 16, 16, self->style == 1 ? 22 : 48);
 
 	/* A "good guy" monster takes damage without starting Quake II's combat AI,
 	 * which this entity has no callbacks for. Fighting is handled above. */

@@ -18,7 +18,8 @@ export interface VariantOptions {
   animate?: boolean;
   /**
    * Keep these named animations, concatenated in order, instead. Each slot lists
-   * acceptable names; the first present is used. Overrides `animate`.
+   * acceptable names; the first present is used. A slot with no names keeps no
+   * frames. Overrides `animate`.
    */
   sequences?: readonly (readonly string[])[];
   /** Uniform scale about the point 24 units below the origin. */
@@ -64,7 +65,7 @@ export function buildModelVariant(source: Uint8Array, options: VariantOptions = 
   let lengths: number[] | undefined;
   if (options.sequences) {
     const runs = options.sequences.map((names) => names.map((n) => run(model.frames, n)).find((r) => r.length) ?? []);
-    if (runs.some((r) => !r.length)) return null;
+    if (options.sequences.some((names, i) => names.length && !runs[i]!.length)) return null;
     kept = runs.flat();
     lengths = runs.map((r) => r.length);
   } else if (options.animate) {

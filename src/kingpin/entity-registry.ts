@@ -24,9 +24,19 @@ export interface Resolution {
   drop?: "cast" | "item";
   /** Cycle the leading idle animation. */
   animate?: boolean;
-  /** A character the engine drives: solid, mortal and able to walk a path. */
-  actor?: boolean;
+  /** A character the engine drives: solid and mortal. */
+  actor?: Actor;
   scale: number;
+}
+
+export interface Actor {
+  /**
+   * Frame names for idle, walk, pain, death, run and punch. The first name a
+   * model has is used; an empty list means the character cannot do that.
+   */
+  animations: readonly (readonly string[])[];
+  /** Uses the low animal collision box. */
+  animal?: boolean;
 }
 
 /** A recognised entity that is deliberately not shown, with the reason. */
@@ -238,8 +248,25 @@ const CASTS: Record<string, Cast> = {
  */
 const HEAD_MODELS = ["head", "bald_head", "pony_head", "weld_head"];
 
-/** Characters driven by the engine so far; the others are static scenery. */
-const ACTORS = new Set(["cast_thug", "cast_punk"]);
+/** Observed frame names; which characters have a punch is a fact of their files. */
+const animations = (idle: string, walk: string, pain: string, death: string, run = "", punch = "") =>
+  [idle, walk, pain, death, run, punch].map((name) => (name ? [name] : []));
+const brawler = (idle: string, pain: string) => animations(idle, "walk_guns_dn", pain, "death1", "run_guns_dn", "melee1");
+/** Two-handed characters have no punch; their weapons are not shown yet. */
+const gunner = animations("stand", "walk_gdown", "pain_chest", "death1");
+
+const ACTORS: Record<string, Actor> = {
+  cast_thug: { animations: brawler("amb_stand", "pain_chest") },
+  cast_runt: { animations: brawler("amb_stand", "pain_chst") },
+  cast_bitch: { animations: brawler("boreda", "p_pain_chst") },
+  cast_punk: { animations: gunner },
+  cast_shorty: { animations: gunner },
+  cast_whore: { animations: gunner },
+  // Seated characters stay seated until they die.
+  cast_thug_sit: { animations: animations("ambsit1", "", "", "death1") },
+  cast_bum_sit: { animations: animations("amb_sit", "", "pain_r", "death_r") },
+  cast_dog: { animal: true, animations: animations("amb", "walk", "pain1", "death1", "run", "med_atk") },
+};
 
 /** Spawn flag TRIGGERED_START: the character is absent until triggered. */
 const TRIGGERED_START = 2;
@@ -259,7 +286,7 @@ function resolveCast(name: string, cast: Cast, entity: Entity, flags: number, sc
   };
   return {
     kind: "character", evidence: name === "cast_thug_sit" ? "assets" : "definition", drop: "cast", animate: true, scale,
-    ...(ACTORS.has(name) ? { actor: true } : {}),
+    actor: ACTORS[name]!,
     parts: [part(head, "head", 0), part("body", "body", 1), part("legs", "legs", 2)],
   };
 }
@@ -285,7 +312,7 @@ export function resolveEntity(entity: Entity, has: HasFile): Resolution | Skip |
   if (name === "cast_dog") {
     const number = entity.get("skin") === "2" ? 2 : 1;
     return {
-      kind: "character", evidence: "definition", drop: "cast", animate: true, scale,
+      kind: "character", evidence: "definition", drop: "cast", animate: true, scale, actor: ACTORS[name]!,
       parts: [{ model: "models/actors/enemy_dog/enemy_dog.mdx", skins: [`models/actors/enemy_dog/dog_00${number}.tga`] }],
     };
   }

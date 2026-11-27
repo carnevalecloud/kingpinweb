@@ -13,7 +13,7 @@
         <h1>Map walkthrough (experimental)</h1>
         <p>
           Loads your maps into a Quake II-derived engine. The Kingpin build shows original props, characters and pickups
-          mostly as static scenery. Thugs and punks can be shot and some walk, and thugs punch back if shot. Expect no sounds and
+          as scenery. Characters can be shot, some walk, and some fight back with their friends. Expect no sounds and
           Quake II movement speeds. Files are read locally and nothing is uploaded.
         </p>
         <p><label>Kingpin folder <input type="file" id="folder" webkitdirectory /></label></p>
@@ -29,6 +29,7 @@
       <p id="status" role="status"></p>
     </main>
     <canvas id="canvas" tabindex="-1" hidden></canvas>
+    <div id="hud" role="status" hidden></div>
     <details id="console" hidden>
       <summary>Engine log</summary>
       <pre id="log"></pre>

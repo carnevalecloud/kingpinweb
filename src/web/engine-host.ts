@@ -15,6 +15,8 @@ export interface EngineOptions {
   log: (line: string) => void;
   /** Render at the browser viewport's size, following it as it changes. */
   fillViewport?: boolean;
+  /** Told the player's health when it changes; experimental engine only. */
+  onHealth?: (health: number) => void;
 }
 
 /** Largest rendering width; beyond it the picture is scaled up. */
@@ -26,7 +28,7 @@ function viewportSize(): [number, number] {
 }
 
 /** Can be called once per page load. */
-export function startEngine({ canvas, files, args, log, flavour = "upstream", fillViewport }: EngineOptions): void {
+export function startEngine({ canvas, files, args, log, flavour = "upstream", fillViewport, onHealth }: EngineOptions): void {
   const global = window as unknown as { Module?: Record<string, unknown>; FS: EmscriptenFs };
   if (global.Module) throw new Error("the engine is already running; reload the page to start again");
 
@@ -85,6 +87,16 @@ export function startEngine({ canvas, files, args, log, flavour = "upstream", fi
     exportFile: () => log("Exporting files is not supported on this page."),
     softExit: (status: number) => log(`Engine exited with code ${status}.`),
   };
+
+  if (onHealth) {
+    let last: number | undefined;
+    window.setInterval(() => {
+      const health = (global.Module?.["_kpweb_health"] as (() => number) | undefined)?.();
+      // -1000: no game is running yet, or the map is loading.
+      if (health === undefined || health === -1000 || health === last) return;
+      onHealth((last = health));
+    }, 200);
+  }
 
   const script = document.createElement("script");
   script.src = engineBase + "index.js";

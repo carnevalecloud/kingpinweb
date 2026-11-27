@@ -5,17 +5,13 @@ import { Diagnostics } from "../formats/diagnostics.ts";
 import { type Entity, parseEntities } from "../formats/entities.ts";
 import { buildModelVariant, normalizeAssetPath } from "../formats/model-variant.ts";
 import type { VirtualFileSystem } from "../vfs/vfs.ts";
-import { type EntityKind, type Part, type Resolution, resolveEntity } from "./entity-registry.ts";
+import { type Actor, type EntityKind, type Part, type Resolution, resolveEntity } from "./entity-registry.ts";
 
 /** Spawn flags of kpweb_static_model; see engine/patches/005-map-models.patch. */
 export const STATIC_FLAGS = { dropCast: 1, mapLit: 2, animate: 4, dropItem: 8 } as const;
 
 /** Protocol limit on model indices, and the share left to the game module. */
 const MAX_MODELS = 256;
-/** Frame names for idle, walk, pain and death, in the order kpweb_cast expects. */
-const ACTOR_SEQUENCES = [["amb_stand", "stand"], ["walk_guns_dn", "walk_gdown"], ["pain_chest"], ["death1"]];
-/** Run and punch, appended for characters whose models have both. */
-const FIGHT_SEQUENCES = [["run_guns_dn", "run_gun_down"], ["melee1"]];
 const RESERVED_MODELS = 48;
 /** The engine's limit on entity text (MAX_MAP_ENTSTRING). */
 const MAX_ENTITY_TEXT = 0x40000;
@@ -112,9 +108,9 @@ export async function populateMap(bytes: Uint8Array, vfs: VirtualFileSystem): Pr
     return fallback;
   };
 
-  const variant = async (part: Part, resolution: Resolution, sequences?: string[][]) => {
+  const variant = async (part: Part, resolution: Resolution, sequences?: Actor["animations"]) => {
     const skin = chooseSkin(part);
-    const key = [part.model, skin ?? "", resolution.animate ?? false, resolution.scale, sequences?.length ?? 0].join("|");
+    const key = [part.model, skin ?? "", resolution.animate ?? false, resolution.scale, JSON.stringify(sequences)].join("|");
     const known = variants.get(key);
     if (known !== undefined) return known;
     const file = vfs.find(part.model);
@@ -149,19 +145,20 @@ export async function populateMap(bytes: Uint8Array, vfs: VirtualFileSystem): Pr
     return made;
   };
 
-  /** The three animated parts of a character, if they all have these sequences. */
-  const actorParts = async (resolution: Resolution, sequences: string[][]) => {
+  /** The animated parts of a character, if they all have these sequences. */
+  const actorParts = async (resolution: Resolution, sequences: Actor["animations"]) => {
     const made = [];
     for (const part of resolution.parts) {
       const one = await variant(part, resolution, sequences);
       if (!one) return;
       made.push(one);
     }
-    // The engine drives all three parts with one frame number.
-    const [head, body, legs] = made;
-    const ranges = head?.lengths?.join(" ");
-    if (!head || !body || !legs || !ranges || made.some((m) => m.lengths?.join(" ") !== ranges)) return;
-    return { head, body, legs, ranges };
+    // The engine drives every part with one frame number.
+    const ranges = made[0]?.lengths?.join(" ");
+    if (!ranges || made.some((m) => m.lengths?.join(" ") !== ranges)) return;
+    // Dogs have one part; "-" tells the engine there is nothing more to draw.
+    const [first, second = "-", third = "-"] = made.map((m) => m.path);
+    return { model: first!, message: `${second} ${third} ${ranges}` };
   };
 
   const replacements = new Map<number, Entity[]>();
@@ -169,21 +166,22 @@ export async function populateMap(bytes: Uint8Array, vfs: VirtualFileSystem): Pr
     const original = entities[index]!;
     const name = original.get("classname")!;
     if (resolution.actor) {
-      let actor = await actorParts(resolution, [...ACTOR_SEQUENCES, ...FIGHT_SEQUENCES]);
-      let ranges = actor?.ranges;
-      if (!actor) {
-        actor = await actorParts(resolution, ACTOR_SEQUENCES);
-        ranges = actor && `${actor.ranges} 0 0`;
-      }
+      const { animations, animal } = resolution.actor;
+      let actor = await actorParts(resolution, animations);
+      // Without its running or punching frames a character can still stand and die.
+      if (!actor) actor = await actorParts(resolution, animations.map((names, i) => (i < 4 ? names : [])));
       if (actor) {
         const entity: Entity = new Map([
-          ["classname", "kpweb_cast"], ["model", actor.head.path],
-          ["message", `${actor.body.path} ${actor.legs.path} ${ranges}`],
+          ["classname", "kpweb_cast"], ["model", actor.model], ["message", actor.message],
         ]);
         for (const key of ["origin", "angle", "angles", "health", "target", "targetname"]) {
           const value = original.get(key);
           if (value !== undefined) entity.set(key, value);
         }
+        if (animal) entity.set("style", "1");
+        // Characters of one group come to each other's aid.
+        const group = Number(original.get("cast_group"));
+        if (Number.isInteger(group) && group > 0) entity.set("count", String(group));
         // Scripted paths belong to cutscenes, which are not implemented.
         if (isScriptedPath(entities, entity.get("target"))) entity.delete("target");
         result.placed.character++;

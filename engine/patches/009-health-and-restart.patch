@@ -1,0 +1,36 @@
+--- a/src/client/cl_screen.c
++++ b/src/client/cl_screen.c
+@@ -1886,3 +1886,19 @@
+ 
+ 	return scale;
+ }
++
++#ifdef __EMSCRIPTEN__
++#include <emscripten.h>
++
++/* Read by the page, which draws the health display. -1000 means no game. */
++EMSCRIPTEN_KEEPALIVE int
++kpweb_health(void)
++{
++	if (cls.state != ca_active || !cl.frame.valid)
++	{
++		return -1000;
++	}
++
++	return cl.frame.playerstate.stats[STAT_HEALTH];
++}
++#endif
+--- a/src/game/player/client.c
++++ b/src/game/player/client.c
+@@ -1408,8 +1408,9 @@
+ 		return;
+ 	}
+ 
+-	/* restart the entire server */
+-	gi.AddCommandString("menu_loadgame\n");
++	/* Kingpin walkthrough: there are no saves or menu pictures, so start the
++	 * map again. */
++	gi.AddCommandString(va("map \"%s\"\n", level.mapname));
+ }
+ 
+ /*

@@ -237,6 +237,17 @@ describe("map population", () => {
     expect(cast.get("message")).toMatch(/ 1 1 1 1 1 1$/);
   });
 
+  it("drives a one-part dog with a low box and passes the gang number", async () => {
+    const dog = new VirtualFileSystem();
+    const names = ["amb_01", "walk_01", "pain1_01", "death1_01", "run_01", "med_atk_01"];
+    dog.add("models/actors/enemy_dog/enemy_dog.mdx", memorySource(namedMdx(names)), "fixture");
+    dog.add("models/actors/enemy_dog/dog_001.tga", memorySource(buildTga(4, 4, [1, 2, 3])), "fixture");
+    const result = await populateMap(map('{"classname" "cast_dog" "origin" "1 1 1" "cast_group" "4"}'), dog);
+    const cast = entitiesOf(result.bytes).find((e) => e.get("classname") === "kpweb_cast")!;
+    expect(cast.get("message")).toBe("- - 1 1 1 1 1 1");
+    expect([cast.get("style"), cast.get("count")]).toEqual(["1", "4"]);
+  });
+
   it("omits a character with a missing part and leaves other maps unchanged", async () => {
     const source = map('{"classname" "cast_runt" "origin" "0 0 0"}');
     const result = await populateMap(source, vfs);
