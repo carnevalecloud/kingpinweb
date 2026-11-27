@@ -84,6 +84,11 @@ test("experimental WebGL engine draws a textured MDX prop", async ({ page }, inf
   await page.locator("#engine").selectOption("kingpin");
   await page.locator("#folder").setInputFiles(game);
   await expect(page.locator("#start")).toBeEnabled();
+  const logs: string[] = [];
+  const errors: string[] = [];
+  page.on("console", m => logs.push(m.text()));
+  page.on("pageerror", e => errors.push(e.message));
+  try {
   await startRoom(page);
   await expect.poll(async () => {
     const png = (await page.locator("#canvas").screenshot()).toString("base64");
@@ -101,4 +106,9 @@ test("experimental WebGL engine draws a textured MDX prop", async ({ page }, inf
       return red / (pixels.length / 4);
     }, png);
   }, { timeout: 90_000 }).toBeGreaterThan(0.005);
+  expect(errors).toEqual([]);
+  } finally {
+    await info.attach("engine-log.txt", {body: (await page.locator("#log").textContent().catch(() => "")) + "\n" + logs.join("\n") + "\n" + errors.join("\n"), contentType:"text/plain"});
+    await info.attach("mdx-canvas.png", {body: await page.locator("#canvas").screenshot({timeout:5000}).catch(() => Buffer.alloc(0)), contentType:"image/png"});
+  }
 });
