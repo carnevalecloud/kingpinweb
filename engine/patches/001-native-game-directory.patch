@@ -1,0 +1,42 @@
+diff --git a/src/common/header/common.h b/src/common/header/common.h
+--- a/src/common/header/common.h
++++ b/src/common/header/common.h
+@@ -36,1 +36,1 @@
+-#define BASEDIRNAME "baseq2"
++#define BASEDIRNAME "main"
+diff --git a/src/backends/wasm/initfs.c b/src/backends/wasm/initfs.c
+--- a/src/backends/wasm/initfs.c
++++ b/src/backends/wasm/initfs.c
+@@ -37,1 +37,1 @@
+-		FS.mkdir("/qwasm2");
++		FS.mkdir("/kingpinweb");
+@@ -38,1 +38,1 @@
+-		FS.mount(IDBFS, {}, "/qwasm2");
++		FS.mount(IDBFS, {}, "/kingpinweb");
+diff --git a/src/backends/unix/system.c b/src/backends/unix/system.c
+--- a/src/backends/unix/system.c
++++ b/src/backends/unix/system.c
+@@ -574,1 +574,1 @@
+-	snprintf(gdir, sizeof(gdir), "/qwasm2");
++	snprintf(gdir, sizeof(gdir), "/kingpinweb");
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -594,1 +594,1 @@
+-                                 --shell-file wasm/shell.html --preload-file=wasm/baseq2@/baseq2 \
++                                 --shell-file wasm/shell.html --preload-file=wasm/baseq2@/main \
+@@ -596,1 +596,1 @@
+-                                 release/game_baseq2.wasm $(WASM_EXTRA_GAMES) -lidbfs.js
++                                 release/game_main.wasm $(WASM_EXTRA_GAMES) -lidbfs.js
+@@ -919,1 +919,1 @@
+-	$(MAKE) release/game_baseq2.wasm
++	$(MAKE) release/game_main.wasm
+@@ -926,1 +926,1 @@
+-release/game_baseq2.wasm : CFLAGS += -fPIC -Wno-unused-result
++release/game_main.wasm : CFLAGS += -fPIC -Wno-unused-result
+@@ -927,1 +927,1 @@
+-release/game_baseq2.wasm : LDFLAGS += -sSIDE_MODULE=1
++release/game_main.wasm : LDFLAGS += -sSIDE_MODULE=1
+@@ -1442,1 +1442,1 @@
+-release/game_baseq2.wasm : $(GAME_OBJS)
++release/game_main.wasm : $(GAME_OBJS)

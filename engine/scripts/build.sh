@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build the unmodified upstream engine into public/engine/upstream/.
+# Build the reference or experimental Kingpin engine into public/engine/.
 # Run inside the pinned Emscripten container: `ddev engine build`.
 #
 # Sources are exported fresh from the pinned commits on every build, so local
@@ -10,16 +10,20 @@ engine_dir="$(cd "$(dirname "$0")/.." && pwd)"
 root="$(dirname "$engine_dir")"
 upstream="$engine_dir/.upstream"
 build="$engine_dir/.build"
-out="$root/public/engine/upstream"
+flavour=upstream
 jobs="$(nproc)"
 
 verify=0
 for arg in "$@"; do
   case "$arg" in
     --verify-reproducible) verify=1 ;;
+    --flavour=kingpin) flavour=kingpin ;;
+    --flavour=upstream) flavour=upstream ;;
     *) echo "Unknown option: $arg" >&2; exit 2 ;;
   esac
 done
+
+out="$root/public/engine/$flavour"
 
 command -v emmake >/dev/null || { echo "ERROR: emmake not found; run via 'ddev engine build'" >&2; exit 1; }
 
@@ -30,6 +34,21 @@ build_once() {
     mkdir -p "$build/$name"
     git -C "$upstream/$name" archive HEAD | tar -x -C "$build/$name"
   done
+
+  if [ "$flavour" = kingpin ]; then
+    for patch in "$engine_dir"/patches/*.patch; do
+      [ -f "$patch" ] || continue
+      # The build tree lies inside this repository. Without the ceiling, git
+      # resolves patch paths against the repository root and silently skips them.
+      (
+        cd "$build/qwasm2"
+        export GIT_CEILING_DIRECTORIES="$build"
+        git apply --unidiff-zero "$patch"
+        # Succeeds only if the patch really changed the files.
+        git apply --unidiff-zero --reverse --check "$patch"
+      ) || { echo "ERROR: could not apply ${patch##*/}" >&2; return 1; }
+    done
+  fi
 
   # Upstream derives its build date from this, which keeps output stable.
   SOURCE_DATE_EPOCH="$(git -C "$upstream/qwasm2" log -1 --format=%ct)"
@@ -54,7 +73,9 @@ build_once() {
   ) >"$build/qwasm2.log" 2>&1 || { tail -80 "$build/qwasm2.log" >&2; return 1; }
 }
 
-artifacts=(index.html index.js index.wasm index.data game_baseq2.wasm ref_soft.wasm ref_gl1.wasm ref_gles3.wasm)
+game_module=game_baseq2.wasm
+[ "$flavour" != kingpin ] || game_module=game_main.wasm
+artifacts=(index.html index.js index.wasm index.data "$game_module" ref_soft.wasm ref_gl1.wasm ref_gles3.wasm)
 
 checksums() {
   (cd "$build/qwasm2/release" && sha256sum "${artifacts[@]}")
@@ -100,10 +121,16 @@ source_archive gl4es ':(exclude)traces' ':(exclude)refs'
 oversized="$(find "$out" -type f -size +25M)"
 [ -z "$oversized" ] || { echo "ERROR: files over 25 MiB: $oversized" >&2; exit 1; }
 cp "$engine_dir/scripts/build.sh" "$engine_dir/upstream.lock" "$out/source/"
+if [ "$flavour" = kingpin ]; then
+  cp -R "$engine_dir/patches" "$out/source/"
+  cp -R "$engine_dir/kingpin" "$out/source/"
+fi
+build_label=upstream-unmodified
+[ "$flavour" != kingpin ] || build_label=kingpin-experimental
 
 {
   echo '{'
-  echo "  \"flavour\": \"upstream-unmodified\","
+  echo "  \"flavour\": \"${build_label}\","
   echo "  \"emscripten\": \"$(emcc --version | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)\","
   echo "  \"upstream\": {"
   echo "    \"qwasm2\": \"$(git -C "$upstream/qwasm2" rev-parse HEAD)\","

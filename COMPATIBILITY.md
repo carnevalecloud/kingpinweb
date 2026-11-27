@@ -3,6 +3,10 @@
 Tested 2026-11-26 with a Steam installation, headless Chromium with software WebGL, engine unmodified.
 Per-map and per-entity tables: [maps](docs/compatibility/maps.md), [entities](docs/compatibility/entities.md).
 
+## Experimental engine
+
+The experimental build includes a native `main` directory, isolated storage, and suppression of the incompatible Quake II status bar. On 2026-11-26 it started the synthetic room and loaded and walked sr1-sr4 and bar_sr, with the same Quake II physics. The opt-in 54-map matrix has not been run. The tables below describe the unmodified engine.
+
 ## Works
 | Item | Evidence |
 | --- | --- |

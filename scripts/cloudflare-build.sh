@@ -32,12 +32,14 @@ mkdir -p "$tools"
   source "$tools/emsdk/emsdk_env.sh"
 
   engine/scripts/fetch.sh
-  engine/scripts/build.sh
+  engine/scripts/build.sh --flavour=upstream
+  engine/scripts/build.sh --flavour=kingpin
 )
 
 npm run build
 
-for file in index.js index.wasm ref_gles3.wasm game_baseq2.wasm; do
-  [ -f "dist/engine/upstream/$file" ] || { echo "ERROR: dist is missing the engine file $file" >&2; exit 1; }
+for file in upstream/{index.js,index.wasm,ref_gles3.wasm,game_baseq2.wasm} \
+  kingpin/{index.js,index.wasm,ref_gles3.wasm,game_main.wasm}; do
+  [ -f "dist/engine/$file" ] || { echo "ERROR: dist is missing the engine file $file" >&2; exit 1; }
 done
 echo "Site with engine ready in dist/"

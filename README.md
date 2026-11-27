@@ -24,6 +24,14 @@ Open <https://kingpinweb.ddev.site>. **Map walkthrough** asks for your Kingpin f
 `C:\Program Files (x86)\Steam\steamapps\common\Kingpin`. Files stay in the browser; they can be remembered
 (IndexedDB) and forgotten again from the same page. Click the view to capture the mouse; WASD, Space, C.
 
+## Experimental engine
+
+Build both flavours with `ddev engine build --flavour=upstream` and `ddev engine build --flavour=kingpin`, then rebuild the site. The walkthrough engine selector defaults to the reference build. The experimental flavour targets `/main` and separate engine storage; it still uses Quake II game logic; only the synthetic room and five maps have been run. Existing remembered imports work with either flavour.
+
+## Full map audit
+
+In the Playwright container, set `KP_ALL_MAPS=1` to run all 54 original maps, and `KP_ENGINE=kingpin` to select the experimental engine. Reports stay in `gamedata/reports/<flavour>/`. The default remains the five-map upstream smoke suite. Original assets are required locally.
+
 ## Commands
 
 | Command | Purpose |
@@ -49,7 +57,7 @@ To inspect an installation outside the project, run with Node 24 on the host:
 | Build command | `npm run build:cloudflare` |
 | Deploy command | `npx wrangler deploy` |
 
-Plain `npm run build` does **not** compile the engine, so the build command matters. `wrangler.jsonc` publishes
+The build command compiles both engine flavours. Plain `npm run build` does **not** compile the engine, so the build command matters. `wrangler.jsonc` publishes
 `dist/` as static assets. The build downloads Emscripten and takes several minutes.
 
 To deploy from your own machine instead: `ddev engine build && ddev npm run build`, then `ddev exec npx wrangler login`

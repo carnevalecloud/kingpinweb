@@ -35,4 +35,5 @@ To enable the original-map tests, copy `main/Pak0.pak` and `main/textures` from 
 - Classname list: `ddev exec node scripts/gen-classnames.ts`
 
 ## Last verified results (2026-11-26)
-35 unit tests passed. 14 browser tests passed, including the 5 original-map tests. Engine build reproducible.
+36 unit tests passed. 15 browser tests passed, including the 5 original-map tests; those 5 also passed with `KP_ENGINE=kingpin`.
+Upstream engine reproducibility was verified earlier the same day; the experimental flavour has not been checked.

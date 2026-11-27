@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listMaps, planGameFiles } from "../../src/kingpin/game-files.ts";
+import { engineTarget, listMaps, planGameFiles } from "../../src/kingpin/game-files.ts";
 
 const select = (...paths: string[]) => paths.map((path) => ({ path }));
 
@@ -37,5 +37,14 @@ describe("planGameFiles", () => {
 
   it("lists map names once", () => {
     expect(listMaps(["maps/sr2.bsp", "/baseq2/maps/sr1.bsp", "maps/SR2.bsp", "maps/!x.tm2"])).toEqual(["sr1", "sr2"]);
+  });
+});
+
+ describe("engineTarget", () => {
+  it("mounts legacy imports in either engine directory", () => {
+    expect(engineTarget("/baseq2/Pak0.pak", "kingpin")).toBe("/main/pak0.pak");
+    expect(engineTarget("/baseq2/maps/sr1.bsp", "upstream")).toBe("/baseq2/maps/sr1.bsp");
+    expect(() => engineTarget("/baseq2/../bad", "kingpin")).toThrow();
+    expect(() => engineTarget("/other/pak0.pak", "kingpin")).toThrow();
   });
 });

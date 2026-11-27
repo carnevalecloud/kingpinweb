@@ -24,10 +24,13 @@ The first major milestone is a browser-rendered, explorable original Skidrow map
 ### Sprint 4: Faithful Skidrow
 Accept when: a person has walked sr1 end to end and recorded defects; player dimensions, eye height and speeds are
 taken from evidence and have collision tests; masked, translucent and sky surfaces look right; no console spam.
-- First engine patches, as a second "kingpin" build flavour beside the upstream one
+- First engine patches, as a second "kingpin" build flavour beside the upstream one (builds and runs)
+- Browser engine selector and launch-time import path mapping implemented; verified on the synthetic room and five original maps
+- Player physics baseline and measurement protocol: [evidence matrix](docs/compatibility/player-physics.md); original values still unverified
 - Native Kingpin filesystem (`main/`, `Pak0.pak`) instead of renaming to `baseq2`
 - Investigate surface flags beyond Quake II, `lightflare` and fog keys
-- Replace the Quake II status bar
+- Disable the incompatible Quake II status bar during walkthrough (done in the experimental build); replace it with a Kingpin HUD later
+- Opt-in 54-map runtime test matrix defined for both flavours; full run pending
 
 ### Sprint 5: Models and props
 Accept when: MDX and MD2 render with skins and animation, checked against synthetic fixtures and real files;
