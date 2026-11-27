@@ -1,7 +1,9 @@
-import { blobSource } from "../formats/binary.ts";
+import { blobSource, memorySource } from "../formats/binary.ts";
 import { Diagnostics } from "../formats/diagnostics.ts";
 import { readPak } from "../formats/pak.ts";
-import { listMaps, planGameFiles } from "../kingpin/game-files.ts";
+import { ENGINE_GAME_DIR, listMaps, planGameFiles } from "../kingpin/game-files.ts";
+import { mountGameFiles } from "../vfs/vfs.ts";
+import { buildPropPak, populateMapProps } from "../kingpin/map-props.ts";
 import { startEngine } from "./engine-host.ts";
 import { type StoredGame, forgetGame, loadGame, saveGame } from "./game-store.ts";
 
@@ -134,6 +136,20 @@ start.addEventListener("click", async () => {
       const data = new Uint8Array(await blob.arrayBuffer());
       bytes += data.length;
       files.push({ target, file: { data } });
+    }
+    if (engineSelect.value === "kingpin") {
+      const vfs = await mountGameFiles(files.map(f => ({path:f.target.slice(ENGINE_GAME_DIR.length+1),source:memorySource(f.file.data)})),new Diagnostics());
+      const mapPath = "maps/" + mapSelect.value + ".bsp";
+      const map = vfs.find(mapPath);
+      if(map) {
+        const result=populateMapProps(await map.source.read(0,map.source.size),vfs);
+        log("Kingpin props: "+result.placed+" placed; unresolved: "+JSON.stringify(result.unresolved));
+        if(result.placed) {
+          // A final numbered PAK overrides the original map without modifying the user's files.
+          const target=ENGINE_GAME_DIR+"/pak99_kpweb_props.pak";
+          files.push({target,file:{data:buildPropPak(mapPath,result.bytes)}});
+        }
+      }
     }
     status.textContent = `Loaded ${files.length} files (${megabytes(bytes)}). Starting ${mapSelect.value}…`;
     $("#setup").hidden = true;
